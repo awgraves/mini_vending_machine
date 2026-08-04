@@ -1,0 +1,12 @@
+CompileFlags:
+  Compiler: arm-zephyr-eabi-gcc
+  Remove:
+    - "-fno-printf-return-value"
+    - "-fno-reorder-functions"
+    - "-mno-sched-prolog"
+    - "-mfix-cortex-m3-ldrd"
+    - "-fconserve-stack"
+    - "-fno-defer-pop"
+    - "-mfp16-format=ieee"
+  Add:
+    - "-D__GNUC__"
