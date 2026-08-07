@@ -5,7 +5,7 @@ export ZEPHYR_TOOLCHAIN_VARIANT := zephyr
 
 BOARD := blackpill_f411ce
 
-.PHONY: setup build flash
+.PHONY: setup build menuconfig debug flash
 
 setup:
 	rm -rf $(VENV)
@@ -21,5 +21,12 @@ setup:
 build:
 	$(WEST) build -p always -b $(BOARD) apps/blinky -d build
 
+menuconfig:
+	$(WEST) build -t menuconfig
+
+debug:
+	$(WEST) debug --board $(BOARD) --runner openocd
+
 flash:
-	$(WEST) flash
+	$(WEST) flash --board $(BOARD)
+	# $(WEST) flash --board $(BOARD) --runner openocd
