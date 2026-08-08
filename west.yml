@@ -5,12 +5,12 @@ manifest:
   projects:
     - name: zephyr
       remote: zephyrproject-rtos
-      revision: v4.1.0
+      revision: v4.4.2
       clone-depth: 1
-      # west-commands: scripts/west-commands.yml
       import:
         name-allowlist:
           - cmsis
           - hal_stm32
+          - cmsis_6
   self:
     path: .
