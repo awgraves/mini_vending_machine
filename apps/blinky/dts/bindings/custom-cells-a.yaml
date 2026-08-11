@@ -1,6 +1,11 @@
 description: Dummy for matching "cells"
 compatible: "custom-cells-a"
 
+properties:
+  "#phandle-array-of-ref-cells":
+    type: int
+    const: 2
+
 phandle-array-of-ref-cells:
   - name-of-cell-one
   - name-of-cell-two
