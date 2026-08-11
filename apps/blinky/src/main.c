@@ -24,6 +24,18 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
 static const struct gpio_dt_spec btn = GPIO_DT_SPEC_GET(SW0_NODE, gpios);
 
+typedef struct {
+  uint32_t cell_one;
+  uint32_t cell_two;
+} node_spec_t;
+
+#define NODE_DT_SPEC_GET_BY_IDX(node_id, prop, idx)                            \
+  {.cell_one = DT_PHA_BY_IDX(node_id, prop, idx, name_of_cell_one),            \
+   .cell_two = DT_PHA_BY_IDX_OR(node_id, prop, idx, name_of_cell_two, 0)}
+
+node_spec_t node_a =
+    NODE_DT_SPEC_GET_BY_IDX(DT_PATH(node_refs), phandle_array_of_refs, 0);
+
 int main(void) {
   int ret, sw_state;
   bool led_state = true;
@@ -57,7 +69,8 @@ int main(void) {
     }
 
     led_state = !led_state;
-    printf("LED state: %s\n", led_state ? "ON" : "OFF");
+    printf("LED state: %s %d\n", led_state ? "ON" : "OFF",
+           led_state ? node_a.cell_one : node_a.cell_two);
     k_msleep(SLEEP_TIME_MS);
   }
   return 0;
