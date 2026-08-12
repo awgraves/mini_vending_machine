@@ -9,7 +9,7 @@
 #include <zephyr/kernel.h>
 
 /* 1000 msec = 1 sec */
-#define SLEEP_TIME_MS 1000
+#define SLEEP_TIME_MS 20
 
 /* The devicetree node identifier for the "led0" alias. */
 #define LED0_NODE DT_ALIAS(led0)
@@ -37,7 +37,8 @@ node_spec_t node_a =
     NODE_DT_SPEC_GET_BY_IDX(DT_PATH(node_refs), phandle_array_of_refs, 0);
 
 int main(void) {
-  int ret, sw_state;
+  int ret, sw_state, prev_sw_state;
+  prev_sw_state = 0;
   bool led_state = true;
 
   if (!gpio_is_ready_dt(&led) || !gpio_is_ready_dt(&btn)) {
@@ -59,18 +60,17 @@ int main(void) {
     if (ret < 0) {
       return 0;
     }
-    if (sw_state) {
-      continue;
+    if (sw_state && sw_state != prev_sw_state) {
+      led_state = !led_state;
+      ret = gpio_pin_set_dt(&led, led_state);
+      if (ret < 0) {
+        return 0;
+      }
+      printf("LED state: %s %d\n", led_state ? "ON" : "OFF",
+             led_state ? node_a.cell_one : node_a.cell_two);
     }
+    prev_sw_state = sw_state;
 
-    ret = gpio_pin_toggle_dt(&led);
-    if (ret < 0) {
-      return 0;
-    }
-
-    led_state = !led_state;
-    printf("LED state: %s %d\n", led_state ? "ON" : "OFF",
-           led_state ? node_a.cell_one : node_a.cell_two);
     k_msleep(SLEEP_TIME_MS);
   }
   return 0;
