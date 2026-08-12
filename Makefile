@@ -19,7 +19,7 @@ setup:
 	$(WEST) sdk install
 
 build:
-	$(WEST) build -p always -b $(BOARD) apps/blinky -d build
+	$(WEST) build -p always -b $(BOARD) apps/gantry -d build
 
 menuconfig:
 	$(WEST) build -t menuconfig

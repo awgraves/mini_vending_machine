@@ -1,0 +1,9 @@
+description: Analog joystick with x/y potentiometers connected to ADC channels
+compatible: joystick
+
+include: base.yaml
+
+properties:
+  io-channels:
+    type: phandle-array
+    required: true

@@ -1,6 +1,0 @@
-description: Custom properties
-compatible: "custom-props-phandles"
-
-properties:
-  phandle-array-of-refs:
-    type: phandle-array
