@@ -25,11 +25,11 @@ menuconfig:
 	$(WEST) build -t menuconfig
 
 debug:
-	$(WEST) debug --board $(BOARD) --runner openocd
+	$(WEST) debug --board $(BOARD) --runner openocd -- --cmd-pre-init "reset_config none"
 
 flash:
-	$(WEST) flash --board $(BOARD)
-	# $(WEST) flash --board $(BOARD) --runner openocd
+	 $(WEST) flash --board $(BOARD)
+	 #$(WEST) flash --board $(BOARD) --runner openocd -- --cmd-pre-init "reset_config none" 
 
 monitor:
 	picocom -b 115200 /dev/ttyACM0
