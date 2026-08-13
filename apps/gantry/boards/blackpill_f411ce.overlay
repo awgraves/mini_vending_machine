@@ -1,3 +1,5 @@
+#include <zephyr/dt-bindings/pinctrl/stm32-pinctrl.h>
+
 / {
   chosen {
     zephyr,console = &cdc_acm_uart0;
@@ -5,14 +7,12 @@
   };
 
   aliases {
-    my-adc = &adc1;
-    my-adc-ch = &adc_ch_1;
     my-joystick = &joystick;
   };
 
   joystick: joystick {
     compatible = "joystick";
-    io-channels = <&adc1 1>;
+    io-channels = <&adc1 1 &adc1 2>;
   };
 };
 
@@ -26,15 +26,30 @@
   };
 };
 
+&pinctrl {
+  adc1_in2_pa2: adc1_in2_pa2 {
+    pinmux = <STM32_PINMUX('A', 2, ANALOG)>;
+  };
+};
+
+#define JOYSTICK_ADC_COMMON \
+    zephyr,gain = "ADC_GAIN_1"; \
+    zephyr,reference = "ADC_REF_INTERNAL"; \
+    zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>; \
+    zephyr,resolution = <12>;
+
 &adc1 {
   #address-cells = <1>;
   #size-cells = <0>;
+  pinctrl-0 = <&adc1_in1_pa1>, < &adc1_in2_pa2 >;
 
   adc_ch_1: channel@1 {
     reg = <1>;
-    zephyr,gain = "ADC_GAIN_1";
-    zephyr,reference = "ADC_REF_INTERNAL";
-    zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
-    zephyr,resolution = <12>;
+    JOYSTICK_ADC_COMMON
+  };
+
+  adc_ch_2: channel@2 {
+    reg = <2>;
+    JOYSTICK_ADC_COMMON
   };
 };
