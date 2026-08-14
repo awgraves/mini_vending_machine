@@ -8,11 +8,25 @@
 
   aliases {
     my-joystick = &joystick;
+    red-pwm-led = &red_led;
+    yellow-pwm-led = &yellow_led;
   };
 
   joystick: joystick {
     compatible = "joystick";
     io-channels = <&adc1 1 &adc1 2>;
+  };
+
+  pwmleds {
+    compatible = "pwm-leds";
+
+    red_led: red-led {
+      pwms = <&pwm4 1 20000 PWM_POLARITY_NORMAL>;
+    };
+
+    yellow_led: yellow-led {
+      pwms = <&pwm4 2 20000 PWM_POLARITY_NORMAL>;
+    };
   };
 };
 
@@ -52,4 +66,8 @@
     reg = <2>;
     JOYSTICK_ADC_COMMON
   };
+};
+
+&timers4 {
+  status = "okay";
 };
