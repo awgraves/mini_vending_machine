@@ -47,7 +47,6 @@ static int joystick_poll(const struct device *dev, readings_t *readings) {
   const struct joystick_config *cfg =
       (const struct joystick_config *)dev->config;
 
-  // TODO: could this seq var be stored on the 'data' field of the device?
   struct adc_sequence seq = {.buffer_size = sizeof(readings_t)};
 
   for (int i = 0; i < 2; i++) {

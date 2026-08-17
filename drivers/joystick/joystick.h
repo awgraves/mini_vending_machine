@@ -16,3 +16,15 @@ struct joystick_config {
   struct adc_dt_spec chans[2];
   uint32_t id;
 };
+
+struct joystick_dt_spec {
+  const struct device *dev;
+};
+
+#define JOYSTICK_DT_SPEC_GET(node_id) {.dev = DEVICE_DT_GET(node_id)}
+
+static inline int joystick_poll_dt(const struct joystick_dt_spec *spec,
+                                   readings_t *readings) {
+  return ((const struct joystick_api *)spec->dev->api)
+      ->poll(spec->dev, readings);
+};

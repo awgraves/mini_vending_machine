@@ -13,7 +13,8 @@
 
 static const struct led_dt_spec red_led = LED_DT_SPEC_GET(RED_LED_NODE);
 static const struct led_dt_spec yellow_led = LED_DT_SPEC_GET(YELLOW_LED_NODE);
-static const struct device *joystick = DEVICE_DT_GET(JOYSTICK);
+
+static const struct joystick_dt_spec joystick = JOYSTICK_DT_SPEC_GET(JOYSTICK);
 
 int main(void) {
   readings_t readings = {0};
@@ -22,14 +23,12 @@ int main(void) {
     return 0;
   }
 
-  if (!device_is_ready(joystick)) {
+  if (!device_is_ready(joystick.dev)) {
     return 0;
   }
 
-  struct joystick_api *j_api = (struct joystick_api *)joystick->api;
-
   while (1) {
-    if (j_api->poll(joystick, &readings) < 0) {
+    if (joystick_poll_dt(&joystick, &readings) < 0) {
       printf("ERROR in joystick\n");
     };
 
