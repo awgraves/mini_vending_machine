@@ -1,0 +1,6 @@
+config JOYSTICK
+  bool "Joystick"
+  default n
+  depends on ADC
+  help
+    Enable custom joystick driver.

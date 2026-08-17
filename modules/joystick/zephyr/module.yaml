@@ -1,0 +1,6 @@
+name: joystick
+build:
+  cmake: .
+  kconfig: Kconfig
+  settings:
+    dts_root: .
