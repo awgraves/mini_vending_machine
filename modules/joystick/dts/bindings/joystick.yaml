@@ -7,3 +7,6 @@ properties:
   io-channels:
     type: phandle-array
     required: true
+  io-channel-names:
+    type: string-array
+    required: true

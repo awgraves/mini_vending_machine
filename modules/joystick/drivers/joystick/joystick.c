@@ -81,8 +81,8 @@ static const struct joystick_api joystick_api_funcs = {
   static const struct joystick_config joystick_config_##inst = {               \
       .chans =                                                                 \
           {                                                                    \
-              ADC_DT_SPEC_GET_BY_IDX(DT_INST(inst, joystick), 0),              \
-              ADC_DT_SPEC_GET_BY_IDX(DT_INST(inst, joystick), 1),              \
+              ADC_DT_SPEC_GET_BY_NAME(DT_INST(inst, joystick), x),             \
+              ADC_DT_SPEC_GET_BY_NAME(DT_INST(inst, joystick), y),             \
           },                                                                   \
       .id = inst};                                                             \
                                                                                \

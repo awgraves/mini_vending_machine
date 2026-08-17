@@ -15,6 +15,7 @@
   joystick: joystick {
     compatible = "joystick";
     io-channels = <&adc1 1 &adc1 2>;
+    io-channel-names = "x", "y";
   };
 
   pwmleds {
@@ -57,12 +58,12 @@
   #size-cells = <0>;
   pinctrl-0 = <&adc1_in1_pa1>, < &adc1_in2_pa2 >;
 
-  adc_ch_1: channel@1 {
+  channel@1 {
     reg = <1>;
     JOYSTICK_ADC_COMMON
   };
 
-  adc_ch_2: channel@2 {
+  channel@2 {
     reg = <2>;
     JOYSTICK_ADC_COMMON
   };
