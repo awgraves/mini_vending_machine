@@ -10,6 +10,8 @@
     my-joystick = &joystick;
     red-pwm-led = &red_led;
     yellow-pwm-led = &yellow_led;
+    stepper-driver = &tmc2209;
+    stepper-ctrl = &step_dir_motion_control;
   };
 
   joystick: joystick {
@@ -28,6 +30,23 @@
     yellow_led: yellow-led {
       pwms = <&pwm4 2 20000 PWM_POLARITY_NORMAL>;
     };
+  };
+
+  tmc2209: stepper-driver {
+    compatible = "adi,tmc2209";
+    en-gpios = <&gpioa 3 GPIO_ACTIVE_LOW>; // double check this
+    m0-gpios = <&gpioa 4 GPIO_ACTIVE_HIGH>;
+    m1-gpios = <&gpioa 5 GPIO_ACTIVE_HIGH>;
+    micro-step-res = <8>;
+  };
+
+  step_dir_motion_control: motion-controller {
+    compatible = "zephyr,gpio-step-dir-stepper-ctrl";
+    step-gpios = <&gpioa 6 GPIO_ACTIVE_HIGH>;
+    dir-gpios = <&gpioa 7 GPIO_ACTIVE_HIGH>;
+    counter = <&counter1>;
+    invert-direction;
+    stepper-driver = <&tmc2209>;
   };
 };
 
@@ -66,6 +85,18 @@
   channel@2 {
     reg = <2>;
     JOYSTICK_ADC_COMMON
+  };
+};
+
+&timers2 {
+  status="okay";
+  st,prescaler = <2>;
+
+  interrupts = <28 0>;
+  interrupt-names = "global";
+
+  counter1: counter {
+    status="okay";
   };
 };
 
