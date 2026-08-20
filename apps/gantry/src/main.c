@@ -10,15 +10,24 @@
 
 static const struct joystick_dt_spec joystick = JOYSTICK_DT_SPEC_GET(JOYSTICK);
 
+void loop_message(const char *msg) {
+  while (1) {
+    printf("%s\n", msg);
+    k_msleep(SLEEP_TIME_MS);
+  }
+}
+
 int main(void) {
   readings_t readings = {0};
 
   if (!device_is_ready(joystick.dev)) {
+    loop_message("joystick not ready");
     return 0;
   }
 
   int ret;
   if ((ret = steppers_init()) < 0) {
+    loop_message("steppers not ready");
     return 0;
   }
 

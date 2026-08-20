@@ -8,35 +8,21 @@
 
   aliases {
     my-joystick = &joystick;
-    red-pwm-led = &red_led;
-    yellow-pwm-led = &yellow_led;
     stepper-driver = &tmc2209;
     stepper-ctrl = &step_dir_motion_control;
   };
 
   joystick: joystick {
     compatible = "joystick";
-    io-channels = <&adc1 1 &adc1 2>;
+    io-channels = <&adc1 8 &adc1 9>;
     io-channel-names = "x", "y";
-  };
-
-  pwmleds {
-    compatible = "pwm-leds";
-
-    red_led: red-led {
-      pwms = <&pwm4 1 20000 PWM_POLARITY_NORMAL>;
-    };
-
-    yellow_led: yellow-led {
-      pwms = <&pwm4 2 20000 PWM_POLARITY_NORMAL>;
-    };
   };
 
   tmc2209: stepper-driver {
     compatible = "adi,tmc2209";
     en-gpios = <&gpioa 3 GPIO_ACTIVE_LOW>; // double check this
-    m0-gpios = <&gpioa 4 GPIO_ACTIVE_HIGH>;
-    m1-gpios = <&gpioa 5 GPIO_ACTIVE_HIGH>;
+    //m0-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
+    //m1-gpios = <&gpioa 5 GPIO_ACTIVE_LOW>;
     micro-step-res = <8>;
   };
 
@@ -61,8 +47,12 @@
 };
 
 &pinctrl {
-  adc1_in2_pa2: adc1_in2_pa2 {
-    pinmux = <STM32_PINMUX('A', 2, ANALOG)>;
+  adc1_in8_pb0: adc1_in8_pb0 {
+    pinmux = <STM32_PINMUX('B', 0, ANALOG)>;
+  };
+
+  adc1_in9_pb1: adc1_in9_pb1 {
+    pinmux = <STM32_PINMUX('B', 1, ANALOG)>;
   };
 };
 
@@ -75,15 +65,15 @@
 &adc1 {
   #address-cells = <1>;
   #size-cells = <0>;
-  pinctrl-0 = <&adc1_in1_pa1>, < &adc1_in2_pa2 >;
+  pinctrl-0 = <&adc1_in8_pb0>, < &adc1_in9_pb1 >;
 
-  channel@1 {
-    reg = <1>;
+  channel@8 {
+    reg = <8>;
     JOYSTICK_ADC_COMMON
   };
 
-  channel@2 {
-    reg = <2>;
+  channel@9 {
+    reg = <9>;
     JOYSTICK_ADC_COMMON
   };
 };
@@ -98,8 +88,4 @@
   counter1: counter {
     status="okay";
   };
-};
-
-&timers4 {
-  status = "okay";
 };
