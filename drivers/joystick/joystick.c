@@ -1,4 +1,3 @@
-#include <errno.h>
 #include <zephyr/logging/log.h>
 
 #include "joystick.h"
@@ -6,6 +5,10 @@
 #define DT_DRV_COMPAT joystick
 
 LOG_MODULE_REGISTER(joystick);
+
+#define MAX_ADC_READING 4095 // assumes 12 bit ADC
+#define JOYSTICK_DEADZONE_MIN 45
+#define JOYSTICK_DEADZONE_MAX 55
 
 /*
   Forward declarations
@@ -37,20 +40,36 @@ static int joystick_init(const struct device *dev) {
   return 0;
 }
 
+// normalize raw 12 bit ADC reading of 0 to MAX_ADC
+// and convert to number between -100 and +100
+static int8_t normalize(uint16_t raw) {
+  int32_t tmp =
+      raw * 100 / MAX_ADC_READING; // first convert to 0 - 100 for easier math
+
+  if (tmp > JOYSTICK_DEADZONE_MIN && tmp < JOYSTICK_DEADZONE_MAX) {
+    return 0; // pin to the 'deadzone' number
+  } else if (tmp >= 99) {
+    return 100; // this particular joystick is unstable around 99
+  }
+
+  return ((tmp - 50) << 1);
+}
+
 /*
   Public API
 */
 
 static int joystick_poll(const struct device *dev, readings_t *readings) {
   int ret = 0;
+  uint16_t raw[2];
 
   const struct joystick_config *cfg =
       (const struct joystick_config *)dev->config;
 
-  struct adc_sequence seq = {.buffer_size = sizeof(readings_t)};
+  struct adc_sequence seq = {.buffer_size = sizeof(uint16_t)};
 
   for (int i = 0; i < 2; i++) {
-    seq.buffer = &readings->raw[i];
+    seq.buffer = &raw[i];
 
     ret = adc_sequence_init_dt(&cfg->chans[i], &seq);
     if (ret < 0) {
@@ -63,6 +82,8 @@ static int joystick_poll(const struct device *dev, readings_t *readings) {
       LOG_ERR("FAILED to read ADC %s\n", cfg->chans[i].dev->name);
       return ret;
     }
+
+    readings->arr[i] = normalize(raw[i]);
   }
 
   return ret;

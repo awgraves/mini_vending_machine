@@ -3,10 +3,10 @@
 
 typedef union {
   struct {
-    uint16_t x, y;
+    int8_t x, y; // -100 to +100
   };
-  uint16_t raw[2];
-} readings_t; // each reading is 12 bits
+  int8_t arr[2];
+} readings_t;
 
 struct joystick_api {
   int (*poll)(const struct device *dev, readings_t *readings);
