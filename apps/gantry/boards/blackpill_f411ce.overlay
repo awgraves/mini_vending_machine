@@ -10,6 +10,7 @@
     my-joystick = &joystick;
     stepper-driver = &tmc2209;
     stepper-ctrl = &step_dir_motion_control;
+    stepper-uart = &usart1;
   };
 
   joystick: joystick {
@@ -20,7 +21,7 @@
 
   tmc2209: stepper-driver {
     compatible = "adi,tmc2209";
-    en-gpios = <&gpioa 3 GPIO_ACTIVE_LOW>; // double check this
+    en-gpios = <&gpioa 3 GPIO_ACTIVE_LOW>;
     //m0-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
     //m1-gpios = <&gpioa 5 GPIO_ACTIVE_LOW>;
     micro-step-res = <8>;
@@ -31,13 +32,15 @@
     step-gpios = <&gpioa 6 GPIO_ACTIVE_HIGH>;
     dir-gpios = <&gpioa 7 GPIO_ACTIVE_HIGH>;
     counter = <&counter1>;
-    invert-direction;
     stepper-driver = <&tmc2209>;
   };
 };
 
 &usart1 {
-  status = "disabled";
+  status = "okay";
+  parity = "none";
+  stop-bits = "1";
+  data-bits = <8>;
 };
 
 &zephyr_udc0 {

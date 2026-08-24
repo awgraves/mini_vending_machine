@@ -10,3 +10,5 @@ int steppers_init(void);
 
 int steppers_x_stop(void);
 int steppers_x_run(struct stepper_run_t *conf);
+
+void steppers_read_config(void);
