@@ -4,12 +4,22 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
 
-static struct stepper_run_t x_state = {0};
+static const struct device *stepper_drivers[2] = {
+    DEVICE_DT_GET(DT_ALIAS(stepper_driver_x)),
+    DEVICE_DT_GET(DT_ALIAS(stepper_driver_y)),
+};
 
-static const struct device *stepper_driver =
-    DEVICE_DT_GET(DT_ALIAS(stepper_driver));
-static const struct device *stepper_ctrl =
-    DEVICE_DT_GET(DT_ALIAS(stepper_ctrl));
+union stepper_ctrls {
+  const struct device *arr[2];
+  struct {
+    const struct device *x;
+    const struct device *y;
+  };
+};
+
+static union stepper_ctrls steppers = {
+    .x = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_x)),
+    .y = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_y))};
 
 /*
   Helpers
@@ -105,7 +115,7 @@ static void build_read_datagram(struct datagram_read *dg, uint8_t dev_addr,
 #define IHOLD_IRUN_IHOLDDELAY(v) (((v) & 0xF) << 16)
 // targeting max 1A, formula on pg. 53
 #define IHOLD_IRUN_VALS                                                        \
-  (IHOLD_IRUN_IHOLD(4) | IHOLD_IRUN_IRUN(16) | IHOLD_IRUN_IHOLDDELAY(4))
+  (IHOLD_IRUN_IHOLD(2) | IHOLD_IRUN_IRUN(16) | IHOLD_IRUN_IHOLDDELAY(4))
 
 #define MIN_NS_INTERVAL 200000
 #define NS_INTERVAL_PER_TICK (MIN_NS_INTERVAL / 100)
@@ -116,7 +126,7 @@ static inline uint64_t get_microstep_interval(uint8_t speed) {
 };
 
 static const struct device *const uart_dev =
-    DEVICE_DT_GET(DT_ALIAS(stepper_uart));
+    DEVICE_DT_GET(DT_ALIAS(steppers_uart));
 
 // used just for debugging with logic analyzer
 void read(uint8_t reg) {
@@ -146,44 +156,55 @@ void write(uint8_t reg, uint32_t value) {
 
 int steppers_init(void) {
   int ret;
-  if (!device_is_ready(stepper_ctrl) || !device_is_ready(uart_dev)) {
-    return -ENODEV;
+  for (int i = 0; i < 2; i++) {
+    if (!device_is_ready(stepper_drivers[i])) {
+      return -ENODEV;
+    }
+
+    if ((ret = stepper_enable(steppers.arr[i])) < 0) {
+      return ret;
+    }
   }
 
   // uart config
+  if (!device_is_ready(uart_dev)) {
+    return -ENODEV;
+  }
+
+  // both steppers share the same bus address 0, same config for both
   write(GCONF_REG_ADDR, GCONF_VALS);
   write(IHOLD_IRUN_REG_ADDR, IHOLD_IRUN_VALS);
   write(CHOPCONF_REG_ADDR, CHOPCONF_VALS);
 
-  if ((ret = stepper_enable(stepper_driver)) < 0) {
-    return ret;
-  }
-
   return 0;
 };
 
-int steppers_x_stop(void) { return stepper_ctrl_stop(stepper_ctrl); };
-
-int steppers_x_run(struct stepper_run_t *conf) {
+int steppers_run(const struct device *stepper, struct stepper_run_t *conf) {
   if (conf->speed < 1 || conf->speed > 100) {
     return -EINVAL;
   }
 
-  if (conf->speed == x_state.speed && conf->dir == x_state.dir) {
-    // no changes
-    return 0;
-  }
-
-  steppers_x_stop();
+  stepper_ctrl_stop(stepper);
 
   int ret;
   uint64_t ns_interval = get_microstep_interval(conf->speed);
-  ret = stepper_ctrl_set_microstep_interval(stepper_ctrl, ns_interval);
+  ret = stepper_ctrl_set_microstep_interval(stepper, ns_interval);
   if (ret < 0) {
     return ret;
   }
 
-  ret = stepper_ctrl_run(stepper_ctrl, conf->dir);
+  ret = stepper_ctrl_run(stepper, conf->dir);
 
   return 0;
+}
+
+int steppers_x_stop(void) { return stepper_ctrl_stop(steppers.x); };
+
+int steppers_x_run(struct stepper_run_t *conf) {
+  return steppers_run(steppers.x, conf);
+};
+
+int steppers_y_stop(void) { return stepper_ctrl_stop(steppers.y); };
+int steppers_y_run(struct stepper_run_t *conf) {
+  return steppers_run(steppers.y, conf);
 };

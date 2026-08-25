@@ -8,9 +8,14 @@
 
   aliases {
     my-joystick = &joystick;
-    stepper-driver = &tmc2209;
-    stepper-ctrl = &step_dir_motion_control;
-    stepper-uart = &usart1;
+
+    steppers-uart = &usart1;
+
+    stepper-driver-x = &tmc2209_x;
+    stepper-ctrl-x = &step_control_x;
+
+    stepper-driver-y = &tmc2209_y;
+    stepper-ctrl-y = &step_control_y;
   };
 
   joystick: joystick {
@@ -19,20 +24,30 @@
     io-channel-names = "x", "y";
   };
 
-  tmc2209: stepper-driver {
+  tmc2209_x: stepper-driver-x {
     compatible = "adi,tmc2209";
-    en-gpios = <&gpioa 3 GPIO_ACTIVE_LOW>;
-    //m0-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
-    //m1-gpios = <&gpioa 5 GPIO_ACTIVE_LOW>;
-    micro-step-res = <8>;
+    en-gpios = <&gpiob 9 GPIO_ACTIVE_LOW>;
   };
 
-  step_dir_motion_control: motion-controller {
+  step_control_x: motion-controller-x {
     compatible = "zephyr,gpio-step-dir-stepper-ctrl";
-    step-gpios = <&gpioa 6 GPIO_ACTIVE_HIGH>;
-    dir-gpios = <&gpioa 7 GPIO_ACTIVE_HIGH>;
+    step-gpios = <&gpiob 8 GPIO_ACTIVE_HIGH>;
+    dir-gpios = <&gpiob 7 GPIO_ACTIVE_HIGH>;
     counter = <&counter1>;
-    stepper-driver = <&tmc2209>;
+    stepper-driver = <&tmc2209_x>;
+  };
+
+  tmc2209_y: stepper-driver-y {
+    compatible = "adi,tmc2209";
+    en-gpios = <&gpiob 5 GPIO_ACTIVE_LOW>;
+  };
+
+  step_control_y: motion-controller-y {
+    compatible = "zephyr,gpio-step-dir-stepper-ctrl";
+    step-gpios = <&gpiob 4 GPIO_ACTIVE_HIGH>;
+    dir-gpios = <&gpiob 3 GPIO_ACTIVE_HIGH>;
+    counter = <&counter2>;
+    stepper-driver = <&tmc2209_y>;
   };
 };
 
@@ -83,12 +98,14 @@
 
 &timers2 {
   status="okay";
-  st,prescaler = <2>;
-
-  interrupts = <28 0>;
-  interrupt-names = "global";
-
   counter1: counter {
+    status="okay";
+  };
+};
+
+&timers3 {
+  status="okay";
+  counter2: counter {
     status="okay";
   };
 };
