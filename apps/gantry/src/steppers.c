@@ -4,22 +4,23 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
 
-static const struct device *stepper_drivers[2] = {
-    DEVICE_DT_GET(DT_ALIAS(stepper_driver_x)),
-    DEVICE_DT_GET(DT_ALIAS(stepper_driver_y)),
+struct stepper {
+  const struct device *driver;
+  const struct device *ctrl;
+  uint8_t uart_addr;
 };
 
-union stepper_ctrls {
-  const struct device *arr[2];
-  struct {
-    const struct device *x;
-    const struct device *y;
-  };
-};
-
-static union stepper_ctrls steppers = {
-    .x = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_x)),
-    .y = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_y))};
+static struct stepper steppers[2] = {
+    {
+        .driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver_x)),
+        .ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_x)),
+        .uart_addr = 0,
+    },
+    {
+        .driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver_y)),
+        .ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_y)),
+        .uart_addr = 0,
+    }};
 
 /*
   Helpers
@@ -157,11 +158,11 @@ void write(uint8_t reg, uint32_t value) {
 int steppers_init(void) {
   int ret;
   for (int i = 0; i < 2; i++) {
-    if (!device_is_ready(stepper_drivers[i])) {
+    if (!device_is_ready(steppers[i].driver)) {
       return -ENODEV;
     }
 
-    if ((ret = stepper_enable(steppers.arr[i])) < 0) {
+    if ((ret = stepper_enable(steppers[i].ctrl)) < 0) {
       return ret;
     }
   }
@@ -179,32 +180,26 @@ int steppers_init(void) {
   return 0;
 };
 
-int steppers_run(const struct device *stepper, struct stepper_run_t *conf) {
+struct stepper_handles get_stepper_handles(void) {
+  return (struct stepper_handles){.x = &steppers[0], .y = &steppers[1]};
+}
+
+int stepper_stop(struct stepper *s) { return stepper_ctrl_stop(s->ctrl); }
+int stepper_run(struct stepper *s, const struct stepper_run_conf *conf) {
   if (conf->speed < 1 || conf->speed > 100) {
     return -EINVAL;
   }
 
-  stepper_ctrl_stop(stepper);
+  stepper_ctrl_stop(s->ctrl);
 
   int ret;
   uint64_t ns_interval = get_microstep_interval(conf->speed);
-  ret = stepper_ctrl_set_microstep_interval(stepper, ns_interval);
+  ret = stepper_ctrl_set_microstep_interval(s->ctrl, ns_interval);
   if (ret < 0) {
     return ret;
   }
 
-  ret = stepper_ctrl_run(stepper, conf->dir);
+  ret = stepper_ctrl_run(s->ctrl, conf->dir);
 
   return 0;
 }
-
-int steppers_x_stop(void) { return stepper_ctrl_stop(steppers.x); };
-
-int steppers_x_run(struct stepper_run_t *conf) {
-  return steppers_run(steppers.x, conf);
-};
-
-int steppers_y_stop(void) { return stepper_ctrl_stop(steppers.y); };
-int steppers_y_run(struct stepper_run_t *conf) {
-  return steppers_run(steppers.y, conf);
-};

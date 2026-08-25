@@ -31,44 +31,31 @@ int main(void) {
     return 0;
   }
 
-  int8_t x_read_prev = 0;
-  int8_t y_read_prev = 0;
-  struct stepper_run_t x_conf = {0};
-  struct stepper_run_t y_conf = {0};
+  int8_t prev_readings[2] = {0};
+  struct stepper_run_conf stepper_conf;
+
+  struct stepper_handles stepper_handles = get_stepper_handles();
+  struct stepper *steppers[2] = {stepper_handles.x, stepper_handles.y};
 
   while (1) {
     if (joystick_poll_dt(&joystick, &readings) < 0) {
       printf("ERROR in joystick\n");
     };
 
-    if (readings.x != x_read_prev) {
-      printf("X: %d\n", readings.x);
-
-      if (readings.x == 0) {
-        steppers_x_stop();
-      } else {
-        uint8_t absolute = abs(readings.x);
-        x_conf.speed = absolute;
-        x_conf.dir = readings.x > 0 ? STEPPER_CTRL_DIRECTION_POSITIVE
-                                    : STEPPER_CTRL_DIRECTION_NEGATIVE;
-        steppers_x_run(&x_conf);
+    for (int i = 0; i < 2; i++) {
+      int8_t reading = readings.arr[i];
+      if (reading != prev_readings[i]) {
+        if (reading == 0) {
+          stepper_stop(steppers[i]);
+        } else {
+          uint8_t absolute = abs(reading);
+          stepper_conf.speed = absolute;
+          stepper_conf.dir = reading > 0 ? STEPPER_CTRL_DIRECTION_POSITIVE
+                                         : STEPPER_CTRL_DIRECTION_NEGATIVE;
+          stepper_run(steppers[i], &stepper_conf);
+        }
+        prev_readings[i] = reading;
       }
-      x_read_prev = readings.x;
-    }
-
-    if (readings.y != y_read_prev) {
-      printf("Y: %d\n", readings.y);
-
-      if (readings.y == 0) {
-        steppers_y_stop();
-      } else {
-        uint8_t absolute = abs(readings.y);
-        y_conf.speed = absolute;
-        y_conf.dir = readings.y > 0 ? STEPPER_CTRL_DIRECTION_POSITIVE
-                                    : STEPPER_CTRL_DIRECTION_NEGATIVE;
-        steppers_y_run(&y_conf);
-      }
-      y_read_prev = readings.y;
     }
 
     k_msleep(SLEEP_TIME_MS);
