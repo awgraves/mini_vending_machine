@@ -48,6 +48,7 @@
     dir-gpios = <&gpiob 3 GPIO_ACTIVE_HIGH>;
     counter = <&counter2>;
     stepper-driver = <&tmc2209_y>;
+    invert-direction;
   };
 };
 
