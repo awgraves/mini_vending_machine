@@ -118,7 +118,7 @@ static void build_read_datagram(struct datagram_read *dg, uint8_t dev_addr,
 #define IHOLD_IRUN_VALS                                                        \
   (IHOLD_IRUN_IHOLD(2) | IHOLD_IRUN_IRUN(16) | IHOLD_IRUN_IHOLDDELAY(4))
 
-#define MIN_NS_INTERVAL 200000
+#define MIN_NS_INTERVAL 100000
 #define NS_INTERVAL_PER_TICK (MIN_NS_INTERVAL / 100)
 #define NS_INTERVAL_SLOWEST (MIN_NS_INTERVAL + (NS_INTERVAL_PER_TICK * 100))
 
