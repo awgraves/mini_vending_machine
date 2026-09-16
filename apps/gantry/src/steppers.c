@@ -1,24 +1,31 @@
 #include "steppers.h"
+#include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/stepper/stepper.h>
 #include <zephyr/drivers/stepper/stepper_ctrl.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
 
 struct stepper {
+  const char name;
   const struct device *driver;
   const struct device *ctrl;
+  const struct gpio_dt_spec limit;
   uint8_t uart_addr;
 };
 
 static struct stepper steppers[2] = {
     {
+        .name = 'X',
         .driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver_x)),
         .ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_x)),
+        .limit = GPIO_DT_SPEC_GET(DT_ALIAS(stepper_limit_x), gpios),
         .uart_addr = 0,
     },
     {
+        .name = 'Y',
         .driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver_y)),
         .ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_y)),
+        .limit = GPIO_DT_SPEC_GET(DT_ALIAS(stepper_limit_y), gpios),
         .uart_addr = 0,
     }};
 
@@ -151,21 +158,66 @@ void write(uint8_t reg, uint32_t value) {
   }
 }
 
+void log_err(const struct stepper *stepper, const char *msg) {
+  printk("Error - Stepper %c: %s\n", stepper->name, msg);
+}
+
+// ---- Limit Switches -----
+static struct gpio_callback limit_sw_cb_data;
+
+void limit_switch_isr(const struct device *dev, struct gpio_callback *cb,
+                      uint32_t pins) {
+  if (BIT(steppers[0].limit.pin) & pins) {
+    printf("X limit hit!\n");
+  };
+  if (BIT(steppers[1].limit.pin) & pins) {
+    printf("Y limit hit!\n");
+  }
+}
+
 /*
   Public API
 */
 
 int steppers_init(void) {
   int ret;
+  int limit_switches_pin_mask = 0;
   for (int i = 0; i < 2; i++) {
-    if (!device_is_ready(steppers[i].driver)) {
+    struct stepper *stepper = &steppers[i];
+
+    // Setup driver and controller
+    if (!device_is_ready(stepper->driver)) {
+      log_err(stepper, "failed to init driver");
       return -ENODEV;
     }
 
-    if ((ret = stepper_enable(steppers[i].ctrl)) < 0) {
+    if ((ret = stepper_enable(stepper->ctrl)) < 0) {
+      log_err(stepper, "failed to init controller");
       return ret;
     }
+
+    // Setup limit switch
+    if (!gpio_is_ready_dt(&stepper->limit)) {
+      log_err(stepper, "failed to init limit switch");
+      return -ENODEV;
+    }
+
+    if ((ret = gpio_pin_configure_dt(&stepper->limit, GPIO_INPUT)) < 0) {
+      log_err(stepper, "failed to configure limit as input");
+      return ret;
+    }
+
+    if ((ret = gpio_pin_interrupt_configure_dt(&stepper->limit,
+                                               GPIO_INT_EDGE_TO_ACTIVE)) < 0) {
+      log_err(stepper, "faled to configure limit interrupt");
+      return ret;
+    }
+    limit_switches_pin_mask |= BIT(stepper->limit.pin);
+    gpio_add_callback(stepper->limit.port, &limit_sw_cb_data);
   }
+
+  gpio_init_callback(&limit_sw_cb_data, limit_switch_isr,
+                     limit_switches_pin_mask);
 
   // uart config
   if (!device_is_ready(uart_dev)) {

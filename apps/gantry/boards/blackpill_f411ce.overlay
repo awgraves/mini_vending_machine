@@ -13,9 +13,31 @@
 
     stepper-driver-x = &tmc2209_x;
     stepper-ctrl-x = &step_control_x;
+    stepper-limit-x = &step_limit_x;
 
     stepper-driver-y = &tmc2209_y;
     stepper-ctrl-y = &step_control_y;
+    stepper-limit-y = &step_limit_y;
+  };
+
+  /* 
+    Note: reserve SPI1 pins for CAN module:
+    PA5 CLK
+    PA6 MISO
+    PA7 MOSI
+  */
+
+  buttons {
+    compatible = "gpio-keys";
+
+    step_limit_x: limit_x {
+      gpios = <&gpiob 14 (GPIO_ACTIVE_LOW | GPIO_PULL_DOWN)>;
+    };
+
+    step_limit_y: limit_y {
+      gpios = <&gpiob 12 (GPIO_ACTIVE_LOW | GPIO_PULL_DOWN)>;
+    };
+
   };
 
   joystick: joystick {
@@ -50,6 +72,7 @@
     stepper-driver = <&tmc2209_y>;
     invert-direction;
   };
+
 };
 
 &usart1 {
