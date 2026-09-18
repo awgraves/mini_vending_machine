@@ -9,24 +9,33 @@ struct stepper {
   const char name;
   const struct device *driver;
   const struct device *ctrl;
-  const struct gpio_dt_spec limit;
-  uint8_t uart_addr;
+  const struct gpio_dt_spec limit_sw;
+  enum stepper_ctrl_direction dir_of_limit_sw;
+  limit_hit_callback_t limit_hit_cb;
 };
 
-static struct stepper steppers[2] = {
-    {
-        .name = 'X',
-        .driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver_x)),
-        .ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_x)),
-        .limit = GPIO_DT_SPEC_GET(DT_ALIAS(stepper_limit_x), gpios),
-        .uart_addr = 0,
-    },
-    {
+struct steppers {
+  struct stepper x;
+  struct stepper y;
+};
+
+static struct steppers steppers = {
+    .x =
+        {
+            .name = 'X',
+            .driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver_x)),
+            .ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_x)),
+            .limit_sw = GPIO_DT_SPEC_GET(DT_ALIAS(stepper_limit_x), gpios),
+            .dir_of_limit_sw = STEPPER_CTRL_DIRECTION_POSITIVE,
+            .limit_hit_cb = NULL,
+        },
+    .y = {
         .name = 'Y',
         .driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver_y)),
         .ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_y)),
-        .limit = GPIO_DT_SPEC_GET(DT_ALIAS(stepper_limit_y), gpios),
-        .uart_addr = 0,
+        .limit_sw = GPIO_DT_SPEC_GET(DT_ALIAS(stepper_limit_y), gpios),
+        .dir_of_limit_sw = STEPPER_CTRL_DIRECTION_NEGATIVE,
+        .limit_hit_cb = NULL,
     }};
 
 /*
@@ -167,24 +176,61 @@ static struct gpio_callback limit_sw_cb_data;
 
 void limit_switch_isr(const struct device *dev, struct gpio_callback *cb,
                       uint32_t pins) {
-  if (BIT(steppers[0].limit.pin) & pins) {
-    printf("X limit hit!\n");
+  struct stepper *hits[2] = {0};
+  uint8_t idx = 0;
+
+  if (BIT(steppers.x.limit_sw.pin) & pins) {
+    hits[idx++] = &steppers.x;
   };
-  if (BIT(steppers[1].limit.pin) & pins) {
-    printf("Y limit hit!\n");
+  if (BIT(steppers.y.limit_sw.pin) & pins) {
+    hits[idx++] = &steppers.y;
   }
+
+  for (int i = 0; i < idx; i++) {
+    stepper_stop(hits[i]);
+    if (hits[i]->limit_hit_cb) {
+      hits[i]->limit_hit_cb();
+    }
+  }
+}
+
+static inline bool is_valid_speed(uint8_t speed) {
+  return (speed > 0 && speed <= 100);
 }
 
 /*
   Public API
 */
 
-int steppers_init(void) {
+static K_SEM_DEFINE(stepper_sem, 0, 1);
+
+// TODO: use this once moving set step amounts
+//
+// static void stepper_callback(const struct device *dev,
+//                             const enum stepper_ctrl_event event,
+//                             void *user_data) {
+//  int32_t pos;
+//  switch (event) {
+//  case STEPPER_CTRL_EVENT_STEPS_COMPLETED:
+//    stepper_ctrl_get_actual_position(dev, &pos);
+//    printf("stepper thinks its at: %d\n", pos);
+//    k_msleep(1000);
+//    k_sem_give(&stepper_sem);
+//    break;
+//  default:
+//    break;
+//  }
+//}
+
+int steppers_init(struct steppers_config *conf) {
   int ret;
   int limit_switches_pin_mask = 0;
-  for (int i = 0; i < 2; i++) {
-    struct stepper *stepper = &steppers[i];
 
+  k_msleep(2000);
+
+  struct stepper *stepper = &steppers.x;
+  for (int i = 0; i < 2; i++) {
+    printf("Stepper %c\n", stepper->name);
     // Setup driver and controller
     if (!device_is_ready(stepper->driver)) {
       log_err(stepper, "failed to init driver");
@@ -197,52 +243,82 @@ int steppers_init(void) {
     }
 
     // Setup limit switch
-    if (!gpio_is_ready_dt(&stepper->limit)) {
+    if (!gpio_is_ready_dt(&stepper->limit_sw)) {
       log_err(stepper, "failed to init limit switch");
       return -ENODEV;
     }
+    stepper->limit_hit_cb = stepper == &steppers.x
+                                ? conf->callbacks.limit_hit_x
+                                : conf->callbacks.limit_hit_y;
 
-    if ((ret = gpio_pin_configure_dt(&stepper->limit, GPIO_INPUT)) < 0) {
+    if ((ret = gpio_pin_configure_dt(&stepper->limit_sw, GPIO_INPUT)) < 0) {
       log_err(stepper, "failed to configure limit as input");
       return ret;
     }
 
-    if ((ret = gpio_pin_interrupt_configure_dt(&stepper->limit,
+    if ((ret = gpio_pin_interrupt_configure_dt(&stepper->limit_sw,
                                                GPIO_INT_EDGE_TO_ACTIVE)) < 0) {
       log_err(stepper, "faled to configure limit interrupt");
       return ret;
     }
-    limit_switches_pin_mask |= BIT(stepper->limit.pin);
-    gpio_add_callback(stepper->limit.port, &limit_sw_cb_data);
+    limit_switches_pin_mask |= BIT(stepper->limit_sw.pin);
+    gpio_add_callback(stepper->limit_sw.port, &limit_sw_cb_data);
+
+    stepper++;
   }
 
+  // shared limit switch ISR init
+  printf("adding limit switch isr\n");
   gpio_init_callback(&limit_sw_cb_data, limit_switch_isr,
                      limit_switches_pin_mask);
 
+  printf("prior to uart\n");
   // uart config
   if (!device_is_ready(uart_dev)) {
     return -ENODEV;
   }
+  printf("made it uart \n");
 
   // both steppers share the same bus address 0, same config for both
   write(GCONF_REG_ADDR, GCONF_VALS);
   write(IHOLD_IRUN_REG_ADDR, IHOLD_IRUN_VALS);
   write(CHOPCONF_REG_ADDR, CHOPCONF_VALS);
 
+  printf("made it post write\n");
+  // k_msleep(2000);
+  printf("made it here\n");
+  stepper_run_until_limit_hit(&steppers.x, 20);
+  stepper_run_until_limit_hit(&steppers.y, 20);
+
+  // test positioning
+  // struct stepper test_stepper = steppers[0];
+  // stepper_ctrl_set_reference_position(test_stepper.ctrl, 0);
+  // stepper_ctrl_set_microstep_interval(test_stepper.ctrl, 100000);
+
+  // stepper_ctrl_set_event_cb(test_stepper.ctrl, stepper_callback, NULL);
+
+  // stepper_ctrl_move_by(test_stepper.ctrl, MICRO_STEPS_PER_REV);
+
+  // k_sem_take(&stepper_sem, K_FOREVER);
+  // stepper_ctrl_move_by(test_stepper.ctrl, -MICRO_STEPS_PER_REV);
+
   return 0;
 };
 
 struct stepper_handles get_stepper_handles(void) {
-  return (struct stepper_handles){.x = &steppers[0], .y = &steppers[1]};
+  return (struct stepper_handles){.x = &steppers.x, .y = &steppers.y};
 }
 
 int stepper_stop(struct stepper *s) { return stepper_ctrl_stop(s->ctrl); }
 int stepper_run(struct stepper *s, const struct stepper_run_conf *conf) {
-  if (conf->speed < 1 || conf->speed > 100) {
+  if (!is_valid_speed(conf->speed)) {
     return -EINVAL;
   }
 
-  stepper_ctrl_stop(s->ctrl);
+  if (conf->dir == s->dir_of_limit_sw && stepper_get_is_at_limit(s)) {
+    // prevent movement
+    return 0;
+  }
 
   int ret;
   uint64_t ns_interval = get_microstep_interval(conf->speed);
@@ -253,5 +329,30 @@ int stepper_run(struct stepper *s, const struct stepper_run_conf *conf) {
 
   ret = stepper_ctrl_run(s->ctrl, conf->dir);
 
+  return 0;
+}
+
+bool stepper_get_is_at_limit(struct stepper *s) {
+  return gpio_pin_get_dt(&s->limit_sw);
+}
+
+int stepper_run_until_limit_hit(struct stepper *s, uint8_t speed) {
+  if (!is_valid_speed(speed)) {
+    return -EINVAL;
+  }
+
+  if (stepper_get_is_at_limit(s)) {
+    if (s->limit_hit_cb) {
+      s->limit_hit_cb();
+    }
+    return 0;
+  }
+
+  uint64_t ns_interval = get_microstep_interval(speed);
+  int ret = stepper_ctrl_set_microstep_interval(s->ctrl, ns_interval);
+  if (ret < 0) {
+    return ret;
+  }
+  stepper_ctrl_run(s->ctrl, s->dir_of_limit_sw);
   return 0;
 }

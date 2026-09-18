@@ -26,7 +26,9 @@ int main(void) {
   }
 
   int ret;
-  if ((ret = steppers_init()) < 0) {
+  struct steppers_config conf = {
+      .callbacks = {.limit_hit_x = NULL, .limit_hit_y = NULL}};
+  if ((ret = steppers_init(&conf)) < 0) {
     loop_message("steppers not ready");
     return 0;
   }
