@@ -1,3 +1,4 @@
+#include "gantry.h"
 #include "joystick.h"
 #include "steppers.h"
 #include <stdio.h>
@@ -25,19 +26,16 @@ int main(void) {
     return 0;
   }
 
-  int ret;
-  struct steppers_config conf = {
-      .callbacks = {.limit_hit_x = NULL, .limit_hit_y = NULL}};
-  if ((ret = steppers_init(&conf)) < 0) {
-    loop_message("steppers not ready");
-    return 0;
-  }
+  gantry_init();
 
   int8_t prev_readings[2] = {0};
   struct stepper_run_conf stepper_conf;
 
-  struct stepper_handles stepper_handles = get_stepper_handles();
-  struct stepper *steppers[2] = {stepper_handles.x, stepper_handles.y};
+  struct stepper *steppers[2] = {stepper_get(STEPPER_X_AXIS),
+                                 stepper_get(STEPPER_Y_AXIS)};
+
+  k_msleep(2000);
+  gantry_calibrate();
 
   while (1) {
     if (joystick_poll_dt(&joystick, &readings) < 0) {

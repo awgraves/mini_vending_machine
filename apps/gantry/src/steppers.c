@@ -5,6 +5,8 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
 
+// #define INCLUDE_STEPPER_UART_READS
+
 struct stepper {
   const char name;
   const struct device *driver;
@@ -14,13 +16,8 @@ struct stepper {
   limit_hit_callback_t limit_hit_cb;
 };
 
-struct steppers {
-  struct stepper x;
-  struct stepper y;
-};
-
-static struct steppers steppers = {
-    .x =
+static struct stepper steppers[STEPPER_AXIS_COUNT] = {
+    [STEPPER_X_AXIS] =
         {
             .name = 'X',
             .driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver_x)),
@@ -29,7 +26,7 @@ static struct steppers steppers = {
             .dir_of_limit_sw = STEPPER_CTRL_DIRECTION_POSITIVE,
             .limit_hit_cb = NULL,
         },
-    .y = {
+    [STEPPER_Y_AXIS] = {
         .name = 'Y',
         .driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver_y)),
         .ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_y)),
@@ -38,12 +35,55 @@ static struct steppers steppers = {
         .limit_hit_cb = NULL,
     }};
 
+static const struct device *const uart_dev =
+    DEVICE_DT_GET(DT_ALIAS(steppers_uart));
+
 /*
   Helpers
 */
 
+// --- Steppers UART ---
 // per
 // https://www.analog.com/media/en/technical-documentation/data-sheets/tmc2209_datasheet_rev1.09.pdf
+#define TMC2209_SYNC 0x05
+
+// pg. 23
+#define GCONF_REG_ADDR 0x00
+#define GCONF_PDN_DISABLE (0x1 << 6)
+#define GCONF_MSTEP_REG_SELECT_UART (0x1 << 7) // rather than ms1/ms2 pins
+#define GCONF_VALS (GCONF_PDN_DISABLE | GCONF_MSTEP_REG_SELECT_UART)
+
+#define IFCNT 0x02
+
+#define CHOPCONF_REG_ADDR 0x6C
+#define CHOPCONF_MRES(s) (((s) & 0xF) << 24)
+#define MRES_8 0x5
+// #define MRES_16 0x4
+
+// taking these defaults from pg. 70
+#define CHOPCONF_TOFF (0x5)
+#define CHOPCONF_TBL (0x2 << 15)
+#define CHOPCONF_HSTART (0x4 << 4)
+#define CHOPCONF_HEND (0 << 7)
+#define CHOPCONF_VALS                                                          \
+  (CHOPCONF_TOFF | CHOPCONF_TBL | CHOPCONF_HSTART | CHOPCONF_HEND |            \
+   CHOPCONF_MRES(MRES_8))
+
+// pg. 28
+#define IHOLD_IRUN_REG_ADDR 0x10
+#define IHOLD_IRUN_IHOLD(v) ((v) & 0x1F)
+#define IHOLD_IRUN_IRUN(v) (((v) & 0x1F) << 8)
+#define IHOLD_IRUN_IHOLDDELAY(v) (((v) & 0xF) << 16)
+// targeting max 1A, formula on pg. 53
+#define IHOLD_IRUN_VALS                                                        \
+  (IHOLD_IRUN_IHOLD(2) | IHOLD_IRUN_IRUN(16) | IHOLD_IRUN_IHOLDDELAY(4))
+
+#define MIN_NS_INTERVAL 100000
+#define NS_INTERVAL_PER_TICK (MIN_NS_INTERVAL / 100)
+#define NS_INTERVAL_SLOWEST (MIN_NS_INTERVAL + (NS_INTERVAL_PER_TICK * 100))
+
+#define TMC2209_BUS_ADDR 0x0 // using same for both steppers (sharing configs)
+
 struct datagram {
   uint8_t sync;
   uint8_t node_addr; // 0 - 3
@@ -51,16 +91,6 @@ struct datagram {
   uint8_t data[4];   // big endian
   uint8_t crc;
 };
-
-struct datagram_read {
-  uint8_t sync;
-  uint8_t node_addr;
-  uint8_t reg;
-  uint8_t crc;
-};
-
-#define TMC2209_SYNC 0x05
-#define TMC2209_BUS_ADDR 0x0
 
 // per pg. 20 of tmc2209 datasheet
 void add_crc(uint8_t *datagram, uint8_t len) {
@@ -95,6 +125,24 @@ static void build_write_datagram(struct datagram *dg, uint8_t dev_addr,
   add_crc((uint8_t *)dg, sizeof(struct datagram));
 }
 
+void uart_write(uint8_t reg, uint32_t value) {
+  struct datagram dg;
+  build_write_datagram(&dg, TMC2209_BUS_ADDR, reg, value);
+
+  uint8_t *dg_bytes = (uint8_t *)&dg;
+  for (int i = 0; i < sizeof(struct datagram); i++) {
+    uart_poll_out(uart_dev, dg_bytes[i]);
+  }
+}
+
+#ifdef INCLUDE_STEPPER_UART_READS
+struct datagram_read {
+  uint8_t sync;
+  uint8_t node_addr;
+  uint8_t reg;
+  uint8_t crc;
+};
+
 static void build_read_datagram(struct datagram_read *dg, uint8_t dev_addr,
                                 uint8_t reg) {
   dg->sync = TMC2209_SYNC;
@@ -102,49 +150,6 @@ static void build_read_datagram(struct datagram_read *dg, uint8_t dev_addr,
   dg->reg = reg;
   add_crc((uint8_t *)dg, sizeof(struct datagram_read));
 }
-
-// pg. 23
-#define GCONF_REG_ADDR 0x00
-#define GCONF_PDN_DISABLE (0x1 << 6)
-#define GCONF_MSTEP_REG_SELECT_UART (0x1 << 7) // rather than ms1/ms2 pins
-#define GCONF_VALS (GCONF_PDN_DISABLE | GCONF_MSTEP_REG_SELECT_UART)
-
-#define IFCNT 0x02
-
-#define CHOPCONF_REG_ADDR 0x6C
-#define CHOPCONF_MRES(s) (((s) & 0xF) << 24)
-#define MRES_8 0x5
-#define MRES_16 0x4
-
-// taking these defaults from pg. 70
-#define CHOPCONF_TOFF (0x5)
-#define CHOPCONF_TBL (0x2 << 15)
-#define CHOPCONF_HSTART (0x4 << 4)
-#define CHOPCONF_HEND (0 << 7)
-#define CHOPCONF_VALS                                                          \
-  (CHOPCONF_TOFF | CHOPCONF_TBL | CHOPCONF_HSTART | CHOPCONF_HEND |            \
-   CHOPCONF_MRES(MRES_8))
-
-// pg. 28
-#define IHOLD_IRUN_REG_ADDR 0x10
-#define IHOLD_IRUN_IHOLD(v) ((v) & 0x1F)
-#define IHOLD_IRUN_IRUN(v) (((v) & 0x1F) << 8)
-#define IHOLD_IRUN_IHOLDDELAY(v) (((v) & 0xF) << 16)
-// targeting max 1A, formula on pg. 53
-#define IHOLD_IRUN_VALS                                                        \
-  (IHOLD_IRUN_IHOLD(2) | IHOLD_IRUN_IRUN(16) | IHOLD_IRUN_IHOLDDELAY(4))
-
-#define MIN_NS_INTERVAL 100000
-#define NS_INTERVAL_PER_TICK (MIN_NS_INTERVAL / 100)
-#define NS_INTERVAL_SLOWEST (MIN_NS_INTERVAL + (NS_INTERVAL_PER_TICK * 100))
-
-static inline uint64_t get_microstep_interval(uint8_t speed) {
-  return NS_INTERVAL_SLOWEST - (NS_INTERVAL_PER_TICK * speed);
-};
-
-static const struct device *const uart_dev =
-    DEVICE_DT_GET(DT_ALIAS(steppers_uart));
-
 // used just for debugging with logic analyzer
 void read(uint8_t reg) {
   struct datagram_read dgr;
@@ -156,42 +161,32 @@ void read(uint8_t reg) {
   }
   k_msleep(1);
 }
-
-void write(uint8_t reg, uint32_t value) {
-  struct datagram dg;
-  build_write_datagram(&dg, TMC2209_BUS_ADDR, reg, value);
-
-  uint8_t *dg_bytes = (uint8_t *)&dg;
-  for (int i = 0; i < sizeof(struct datagram); i++) {
-    uart_poll_out(uart_dev, dg_bytes[i]);
-  }
-}
-
-void log_err(const struct stepper *stepper, const char *msg) {
-  printk("Error - Stepper %c: %s\n", stepper->name, msg);
-}
+#endif
 
 // ---- Limit Switches -----
 static struct gpio_callback limit_sw_cb_data;
 
 void limit_switch_isr(const struct device *dev, struct gpio_callback *cb,
                       uint32_t pins) {
-  struct stepper *hits[2] = {0};
-  uint8_t idx = 0;
 
-  if (BIT(steppers.x.limit_sw.pin) & pins) {
-    hits[idx++] = &steppers.x;
-  };
-  if (BIT(steppers.y.limit_sw.pin) & pins) {
-    hits[idx++] = &steppers.y;
-  }
-
-  for (int i = 0; i < idx; i++) {
-    stepper_stop(hits[i]);
-    if (hits[i]->limit_hit_cb) {
-      hits[i]->limit_hit_cb();
+  for (int i = 0; i < STEPPER_AXIS_COUNT; i++) {
+    struct stepper *s = &steppers[i];
+    if (BIT(s->limit_sw.pin) & pins) {
+      stepper_stop(s);
+      if (s->limit_hit_cb) {
+        s->limit_hit_cb();
+      }
     }
   }
+}
+
+// ---- Misc ----
+static inline uint64_t get_microstep_interval(uint8_t speed) {
+  return NS_INTERVAL_SLOWEST - (NS_INTERVAL_PER_TICK * speed);
+};
+
+void log_err(const struct stepper *stepper, const char *msg) {
+  printk("Error - Stepper %c: %s\n", stepper->name, msg);
 }
 
 static inline bool is_valid_speed(uint8_t speed) {
@@ -202,34 +197,13 @@ static inline bool is_valid_speed(uint8_t speed) {
   Public API
 */
 
-static K_SEM_DEFINE(stepper_sem, 0, 1);
-
-// TODO: use this once moving set step amounts
-//
-// static void stepper_callback(const struct device *dev,
-//                             const enum stepper_ctrl_event event,
-//                             void *user_data) {
-//  int32_t pos;
-//  switch (event) {
-//  case STEPPER_CTRL_EVENT_STEPS_COMPLETED:
-//    stepper_ctrl_get_actual_position(dev, &pos);
-//    printf("stepper thinks its at: %d\n", pos);
-//    k_msleep(1000);
-//    k_sem_give(&stepper_sem);
-//    break;
-//  default:
-//    break;
-//  }
-//}
-
-int steppers_init(struct steppers_config *conf) {
+int steppers_init(void) {
   int ret;
   int limit_switches_pin_mask = 0;
 
-  k_msleep(2000);
-
-  struct stepper *stepper = &steppers.x;
-  for (int i = 0; i < 2; i++) {
+  struct stepper *stepper;
+  for (int i = 0; i < STEPPER_AXIS_COUNT; i++) {
+    stepper = &steppers[i];
     printf("Stepper %c\n", stepper->name);
     // Setup driver and controller
     if (!device_is_ready(stepper->driver)) {
@@ -247,9 +221,6 @@ int steppers_init(struct steppers_config *conf) {
       log_err(stepper, "failed to init limit switch");
       return -ENODEV;
     }
-    stepper->limit_hit_cb = stepper == &steppers.x
-                                ? conf->callbacks.limit_hit_x
-                                : conf->callbacks.limit_hit_y;
 
     if ((ret = gpio_pin_configure_dt(&stepper->limit_sw, GPIO_INPUT)) < 0) {
       log_err(stepper, "failed to configure limit as input");
@@ -262,35 +233,42 @@ int steppers_init(struct steppers_config *conf) {
       return ret;
     }
     limit_switches_pin_mask |= BIT(stepper->limit_sw.pin);
-    gpio_add_callback(stepper->limit_sw.port, &limit_sw_cb_data);
-
-    stepper++;
   }
 
   // shared limit switch ISR init
-  printf("adding limit switch isr\n");
   gpio_init_callback(&limit_sw_cb_data, limit_switch_isr,
                      limit_switches_pin_mask);
+  // these are both on the same port, so only need to add once
+  gpio_add_callback(stepper->limit_sw.port, &limit_sw_cb_data);
 
-  printf("prior to uart\n");
   // uart config
+  // both steppers share the same bus address 0, same config for both
   if (!device_is_ready(uart_dev)) {
     return -ENODEV;
   }
-  printf("made it uart \n");
-
-  // both steppers share the same bus address 0, same config for both
-  write(GCONF_REG_ADDR, GCONF_VALS);
-  write(IHOLD_IRUN_REG_ADDR, IHOLD_IRUN_VALS);
-  write(CHOPCONF_REG_ADDR, CHOPCONF_VALS);
-
-  printf("made it post write\n");
-  // k_msleep(2000);
-  printf("made it here\n");
-  stepper_run_until_limit_hit(&steppers.x, 20);
-  stepper_run_until_limit_hit(&steppers.y, 20);
+  uart_write(GCONF_REG_ADDR, GCONF_VALS);
+  uart_write(IHOLD_IRUN_REG_ADDR, IHOLD_IRUN_VALS);
+  uart_write(CHOPCONF_REG_ADDR, CHOPCONF_VALS);
 
   // test positioning
+  // TODO: use this once moving set step amounts
+  //
+  // static K_SEM_DEFINE(stepper_sem, 0, 1);
+  // static void stepper_callback(const struct device *dev,
+  //                             const enum stepper_ctrl_event event,
+  //                             void *user_data) {
+  //  int32_t pos;
+  //  switch (event) {
+  //  case STEPPER_CTRL_EVENT_STEPS_COMPLETED:
+  //    stepper_ctrl_get_actual_position(dev, &pos);
+  //    printf("stepper thinks its at: %d\n", pos);
+  //    k_msleep(1000);
+  //    k_sem_give(&stepper_sem);
+  //    break;
+  //  default:
+  //    break;
+  //  }
+  //}
   // struct stepper test_stepper = steppers[0];
   // stepper_ctrl_set_reference_position(test_stepper.ctrl, 0);
   // stepper_ctrl_set_microstep_interval(test_stepper.ctrl, 100000);
@@ -305,8 +283,10 @@ int steppers_init(struct steppers_config *conf) {
   return 0;
 };
 
-struct stepper_handles get_stepper_handles(void) {
-  return (struct stepper_handles){.x = &steppers.x, .y = &steppers.y};
+struct stepper *stepper_get(enum stepper_axis axis) { return &steppers[axis]; }
+
+void stepper_set_limit_hit_cb(struct stepper *s, limit_hit_callback_t cb) {
+  s->limit_hit_cb = cb;
 }
 
 int stepper_stop(struct stepper *s) { return stepper_ctrl_stop(s->ctrl); }
