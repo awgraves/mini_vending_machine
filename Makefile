@@ -16,7 +16,7 @@ setup:
 	$(WEST) update
 	$(WEST) zephyr-export
 	$(WEST) packages pip --install
-	$(WEST) sdk install
+	# NOTE: the zephyr-sdk will be installed by the devenv rather than by west
 
 build:
 	$(WEST) build -p always -b $(BOARD) apps/gantry -d build
