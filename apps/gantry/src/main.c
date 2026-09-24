@@ -34,8 +34,19 @@ int main(void) {
   struct stepper *steppers[2] = {stepper_get(STEPPER_X_AXIS),
                                  stepper_get(STEPPER_Y_AXIS)};
 
-  k_msleep(2000);
+  k_msleep(1000);
   gantry_calibrate();
+
+  int ret;
+  for (int i = 1; i < 7; i++){
+    ret = gantry_move_to_pos((enum gantry_pos)i);
+    if (ret < 0){
+      break;
+    }
+    k_msleep(1000);
+  }
+
+  gantry_move_to_pos(POS_HOME);
 
   while (1) {
     if (joystick_poll_dt(&joystick, &readings) < 0) {

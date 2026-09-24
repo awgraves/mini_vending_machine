@@ -172,6 +172,7 @@ void limit_switch_isr(const struct device *dev, struct gpio_callback *cb,
     struct stepper *s = &steppers[i];
     if (BIT(s->limit_sw.pin) & pins) {
       stepper_stop(s);
+      stepper_ctrl_set_reference_position(s->ctrl, 0);
       if (s->event_sem) {
         k_sem_give(s->event_sem);
       }
@@ -182,13 +183,13 @@ void limit_switch_isr(const struct device *dev, struct gpio_callback *cb,
 // ---- Motor Events ----
 
 static void stepper_event_callback(const struct device *dev,
-                             const enum stepper_ctrl_event event,
-                             void *user_data) {
-  
+                                   const enum stepper_ctrl_event event,
+                                   void *user_data) {
+
   switch (event) {
   case STEPPER_CTRL_EVENT_STEPS_COMPLETED:
     struct stepper *s = (struct stepper *)user_data;
-    if (s->event_sem){
+    if (s->event_sem) {
       k_sem_give(s->event_sem);
     }
     break;
@@ -274,7 +275,7 @@ int steppers_init(void) {
 
 struct stepper *stepper_get(enum stepper_axis axis) { return &steppers[axis]; }
 
-void stepper_set_event_sem(struct stepper *s, struct k_sem *sem){
+void stepper_set_event_sem(struct stepper *s, struct k_sem *sem) {
   s->event_sem = sem;
 }
 
@@ -286,7 +287,7 @@ int stepper_run(struct stepper *s, const struct stepper_run_conf *conf) {
   }
 
   int ret = stepper_set_speed(s, conf->speed);
-  if (ret != 0){
+  if (ret != 0) {
     return ret;
   }
 
@@ -299,16 +300,20 @@ bool stepper_get_is_at_limit(struct stepper *s) {
   return gpio_pin_get_dt(&s->limit_sw);
 }
 
+int stepper_read_curr_step_count(struct stepper *s, int32_t *pos) {
+  return stepper_ctrl_get_actual_position(s->ctrl, pos);
+}
+
 int stepper_run_until_limit_hit(struct stepper *s, uint8_t speed) {
-  if (stepper_get_is_at_limit(s)){
-    if (s->event_sem){
+  if (stepper_get_is_at_limit(s)) {
+    if (s->event_sem) {
       k_sem_give(s->event_sem);
     }
     return 0;
   }
 
   int ret = stepper_set_speed(s, speed);
-  if (ret != 0){
+  if (ret != 0) {
     return ret;
   }
 
@@ -316,8 +321,8 @@ int stepper_run_until_limit_hit(struct stepper *s, uint8_t speed) {
   return 0;
 }
 
-int stepper_set_speed(struct stepper *s, uint8_t speed){
-  if (!is_valid_speed(speed)){
+int stepper_set_speed(struct stepper *s, uint8_t speed) {
+  if (!is_valid_speed(speed)) {
     return -EINVAL;
   }
 
@@ -325,9 +330,10 @@ int stepper_set_speed(struct stepper *s, uint8_t speed){
   return stepper_ctrl_set_microstep_interval(s->ctrl, ns_interval);
 }
 
-int stepper_move_steps(struct stepper *s, int32_t micro_steps){
-  if (micro_steps == 0){
+int stepper_move_steps(struct stepper *s, int32_t micro_steps) {
+  if (micro_steps == 0) {
     // do nothing
+    k_sem_give(s->event_sem);
     return 0;
   }
 

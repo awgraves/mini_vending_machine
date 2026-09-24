@@ -27,6 +27,7 @@ int stepper_run(struct stepper *s, const struct stepper_run_conf *conf);
 
 /* Limit related funcs */
 bool stepper_get_is_at_limit(struct stepper *s);
+int stepper_read_curr_step_count(struct stepper *s, int32_t *pos);
 int stepper_run_until_limit_hit(struct stepper *s, uint8_t speed);
 
 int stepper_set_speed(struct stepper *s, uint8_t speed);
