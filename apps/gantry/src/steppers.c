@@ -1,4 +1,5 @@
 #include "steppers.h"
+#include <stdint.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/stepper/stepper.h>
 #include <zephyr/drivers/stepper/stepper_ctrl.h>
@@ -6,14 +7,14 @@
 #include <zephyr/kernel.h>
 
 // #define INCLUDE_STEPPER_UART_READS
+#define DIR_OF_LIMIT_SWITCH STEPPER_CTRL_DIRECTION_NEGATIVE
 
 struct stepper {
   const char name;
   const struct device *driver;
   const struct device *ctrl;
   const struct gpio_dt_spec limit_sw;
-  enum stepper_ctrl_direction dir_of_limit_sw;
-  limit_hit_callback_t limit_hit_cb;
+  struct k_sem *event_sem;
 };
 
 static struct stepper steppers[STEPPER_AXIS_COUNT] = {
@@ -23,16 +24,14 @@ static struct stepper steppers[STEPPER_AXIS_COUNT] = {
             .driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver_x)),
             .ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_x)),
             .limit_sw = GPIO_DT_SPEC_GET(DT_ALIAS(stepper_limit_x), gpios),
-            .dir_of_limit_sw = STEPPER_CTRL_DIRECTION_POSITIVE,
-            .limit_hit_cb = NULL,
+            .event_sem = NULL,
         },
     [STEPPER_Y_AXIS] = {
         .name = 'Y',
         .driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver_y)),
         .ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_y)),
         .limit_sw = GPIO_DT_SPEC_GET(DT_ALIAS(stepper_limit_y), gpios),
-        .dir_of_limit_sw = STEPPER_CTRL_DIRECTION_NEGATIVE,
-        .limit_hit_cb = NULL,
+        .event_sem = NULL,
     }};
 
 static const struct device *const uart_dev =
@@ -173,10 +172,28 @@ void limit_switch_isr(const struct device *dev, struct gpio_callback *cb,
     struct stepper *s = &steppers[i];
     if (BIT(s->limit_sw.pin) & pins) {
       stepper_stop(s);
-      if (s->limit_hit_cb) {
-        s->limit_hit_cb();
+      if (s->event_sem) {
+        k_sem_give(s->event_sem);
       }
     }
+  }
+}
+
+// ---- Motor Events ----
+
+static void stepper_event_callback(const struct device *dev,
+                             const enum stepper_ctrl_event event,
+                             void *user_data) {
+  
+  switch (event) {
+  case STEPPER_CTRL_EVENT_STEPS_COMPLETED:
+    struct stepper *s = (struct stepper *)user_data;
+    if (s->event_sem){
+      k_sem_give(s->event_sem);
+    }
+    break;
+  default:
+    break;
   }
 }
 
@@ -233,6 +250,8 @@ int steppers_init(void) {
       return ret;
     }
     limit_switches_pin_mask |= BIT(stepper->limit_sw.pin);
+
+    stepper_ctrl_set_event_cb(stepper->ctrl, stepper_event_callback, stepper);
   }
 
   // shared limit switch ISR init
@@ -250,66 +269,30 @@ int steppers_init(void) {
   uart_write(IHOLD_IRUN_REG_ADDR, IHOLD_IRUN_VALS);
   uart_write(CHOPCONF_REG_ADDR, CHOPCONF_VALS);
 
-  // test positioning
-  // TODO: use this once moving set step amounts
-  //
-  // static K_SEM_DEFINE(stepper_sem, 0, 1);
-  // static void stepper_callback(const struct device *dev,
-  //                             const enum stepper_ctrl_event event,
-  //                             void *user_data) {
-  //  int32_t pos;
-  //  switch (event) {
-  //  case STEPPER_CTRL_EVENT_STEPS_COMPLETED:
-  //    stepper_ctrl_get_actual_position(dev, &pos);
-  //    printf("stepper thinks its at: %d\n", pos);
-  //    k_msleep(1000);
-  //    k_sem_give(&stepper_sem);
-  //    break;
-  //  default:
-  //    break;
-  //  }
-  //}
-  // struct stepper test_stepper = steppers[0];
-  // stepper_ctrl_set_reference_position(test_stepper.ctrl, 0);
-  // stepper_ctrl_set_microstep_interval(test_stepper.ctrl, 100000);
-
-  // stepper_ctrl_set_event_cb(test_stepper.ctrl, stepper_callback, NULL);
-
-  // stepper_ctrl_move_by(test_stepper.ctrl, MICRO_STEPS_PER_REV);
-
-  // k_sem_take(&stepper_sem, K_FOREVER);
-  // stepper_ctrl_move_by(test_stepper.ctrl, -MICRO_STEPS_PER_REV);
-
   return 0;
 };
 
 struct stepper *stepper_get(enum stepper_axis axis) { return &steppers[axis]; }
 
-void stepper_set_limit_hit_cb(struct stepper *s, limit_hit_callback_t cb) {
-  s->limit_hit_cb = cb;
+void stepper_set_event_sem(struct stepper *s, struct k_sem *sem){
+  s->event_sem = sem;
 }
 
 int stepper_stop(struct stepper *s) { return stepper_ctrl_stop(s->ctrl); }
 int stepper_run(struct stepper *s, const struct stepper_run_conf *conf) {
-  if (!is_valid_speed(conf->speed)) {
-    return -EINVAL;
-  }
-
-  if (conf->dir == s->dir_of_limit_sw && stepper_get_is_at_limit(s)) {
+  if (conf->dir == DIR_OF_LIMIT_SWITCH && stepper_get_is_at_limit(s)) {
     // prevent movement
     return 0;
   }
 
-  int ret;
-  uint64_t ns_interval = get_microstep_interval(conf->speed);
-  ret = stepper_ctrl_set_microstep_interval(s->ctrl, ns_interval);
-  if (ret < 0) {
+  int ret = stepper_set_speed(s, conf->speed);
+  if (ret != 0){
     return ret;
   }
 
   ret = stepper_ctrl_run(s->ctrl, conf->dir);
 
-  return 0;
+  return ret;
 }
 
 bool stepper_get_is_at_limit(struct stepper *s) {
@@ -317,22 +300,36 @@ bool stepper_get_is_at_limit(struct stepper *s) {
 }
 
 int stepper_run_until_limit_hit(struct stepper *s, uint8_t speed) {
-  if (!is_valid_speed(speed)) {
-    return -EINVAL;
-  }
-
-  if (stepper_get_is_at_limit(s)) {
-    if (s->limit_hit_cb) {
-      s->limit_hit_cb();
+  if (stepper_get_is_at_limit(s)){
+    if (s->event_sem){
+      k_sem_give(s->event_sem);
     }
     return 0;
   }
 
-  uint64_t ns_interval = get_microstep_interval(speed);
-  int ret = stepper_ctrl_set_microstep_interval(s->ctrl, ns_interval);
-  if (ret < 0) {
+  int ret = stepper_set_speed(s, speed);
+  if (ret != 0){
     return ret;
   }
-  stepper_ctrl_run(s->ctrl, s->dir_of_limit_sw);
+
+  stepper_ctrl_run(s->ctrl, DIR_OF_LIMIT_SWITCH);
   return 0;
+}
+
+int stepper_set_speed(struct stepper *s, uint8_t speed){
+  if (!is_valid_speed(speed)){
+    return -EINVAL;
+  }
+
+  uint64_t ns_interval = get_microstep_interval(speed);
+  return stepper_ctrl_set_microstep_interval(s->ctrl, ns_interval);
+}
+
+int stepper_move_steps(struct stepper *s, int32_t micro_steps){
+  if (micro_steps == 0){
+    // do nothing
+    return 0;
+  }
+
+  return stepper_ctrl_move_by(s->ctrl, micro_steps);
 }

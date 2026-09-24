@@ -19,8 +19,7 @@ struct stepper_run_conf {
 int steppers_init(void);
 struct stepper *stepper_get(enum stepper_axis axis);
 
-typedef void (*limit_hit_callback_t)(void);
-void stepper_set_limit_hit_cb(struct stepper *s, limit_hit_callback_t cb);
+void stepper_set_event_sem(struct stepper *s, struct k_sem *sem);
 
 int stepper_stop(struct stepper *s);
 // TODO: remove stepper_run once positioning logic exists
@@ -29,3 +28,6 @@ int stepper_run(struct stepper *s, const struct stepper_run_conf *conf);
 /* Limit related funcs */
 bool stepper_get_is_at_limit(struct stepper *s);
 int stepper_run_until_limit_hit(struct stepper *s, uint8_t speed);
+
+int stepper_set_speed(struct stepper *s, uint8_t speed);
+int stepper_move_steps(struct stepper *s, int32_t steps);

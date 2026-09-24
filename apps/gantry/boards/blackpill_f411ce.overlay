@@ -57,6 +57,7 @@
     dir-gpios = <&gpiob 7 GPIO_ACTIVE_HIGH>;
     counter = <&counter1>;
     stepper-driver = <&tmc2209_x>;
+    invert-direction;
   };
 
   tmc2209_y: stepper-driver-y {
