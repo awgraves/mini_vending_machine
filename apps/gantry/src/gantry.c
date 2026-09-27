@@ -44,17 +44,11 @@ struct axis {
   uint32_t max_distance_in_mm;
 };
 
-enum gantry_calibration_state {
-  NOT_CALIBRATED,
-  CALIBRATING,
-  CALIBRATION_ERR,
-  CALIBRATION_COMPLETE,
-};
-
 struct gantry {
-  enum gantry_calibration_state calibration_state;
+  bool calibrated;
   struct axis x;
   struct axis y;
+  gantry_event_cb_t event_cb;
 };
 
 static struct gantry gantry;
@@ -62,6 +56,10 @@ static struct gantry gantry;
 /*
   Helpers
 */
+
+// -------------------
+// --- Conversions ---
+// -------------------
 
 static inline int32_t millimeters_to_steps(struct axis *a, int32_t mm) {
   return a->micro_steps_per_mm * mm;
@@ -77,6 +75,41 @@ static inline int32_t get_curr_axis_pos_in_mm(struct axis *a) {
 const struct coords_in_mm *get_coords_for_position(enum gantry_pos pos) {
   return &positions[pos];
 }
+
+// ----------------
+// ---- Events ----
+// ----------------
+
+void _pub_event(struct gantry_event *ev) {
+  if (gantry.event_cb) {
+    gantry.event_cb(ev);
+  }
+}
+
+void pub_err(enum gantry_err_type err) {
+  struct gantry_event ev = {
+      .type = GANTRY_ERR,
+      .data = (void *)err,
+  };
+  _pub_event(&ev);
+}
+
+void pub_move_completed(enum gantry_pos pos) {
+  struct gantry_event ev = {
+      .type = GANTRY_MOVE_COMPLETED,
+      .data = (void *)pos,
+  };
+  _pub_event(&ev);
+}
+
+// --------------------------
+// ---- Command handlers ----
+// --------------------------
+
+int await_axis_moves(void) {
+  // stuff in here to parallelize axis moves
+  return 0;
+};
 
 bool axis_calibration(struct axis *a) {
   /*
@@ -103,61 +136,39 @@ bool axis_calibration(struct axis *a) {
   return true;
 }
 
-/*
-  Public API
-*/
-
-int gantry_init(void) {
-  int ret;
-  if ((ret = steppers_init()) < 0) {
-    printk("steppers not ready\n");
-    return ret;
-  }
-
-  gantry.calibration_state = NOT_CALIBRATED;
-  gantry.x = (struct axis){
-      .stepper = stepper_get(STEPPER_X_AXIS),
-      .micro_steps_per_mm = X_AXIS_MICRO_STEPS_PER_MM,
-      .max_distance_in_mm = X_AXIS_MAX_DISTANCE_IN_MM,
-  };
-  gantry.y = (struct axis){.stepper = stepper_get(STEPPER_Y_AXIS),
-                           .micro_steps_per_mm = Y_AXIS_MICRO_STEPS_PER_MM,
-                           .max_distance_in_mm = Y_AXIS_MAX_DISTANCE_IN_MM};
-
-  k_sem_init(&gantry.x.event_sem, 0, 1);
-  k_sem_init(&gantry.y.event_sem, 0, 1);
-
-  stepper_set_event_sem(gantry.x.stepper, &gantry.x.event_sem);
-  stepper_set_event_sem(gantry.y.stepper, &gantry.y.event_sem);
-
-  return 0;
-}
-
-int gantry_calibrate(void) {
-  gantry.calibration_state = CALIBRATING;
-
+void gantry_home(void) {
+  // special logic for home moves, also covers calibration
   if (axis_calibration(&gantry.x) && axis_calibration(&gantry.y)) {
-    gantry.calibration_state = CALIBRATION_COMPLETE;
-    return 0;
+    gantry.calibrated = true;
+    pub_move_completed(POS_HOME);
   } else {
-    gantry.calibration_state = CALIBRATION_ERR;
-    return -1;
+    gantry.calibrated = false;
+    pub_err(ERR_HOMING_FAILURE);
   }
 }
 
-int gantry_move_to_pos(enum gantry_pos pos) {
-  if (gantry.calibration_state != CALIBRATION_COMPLETE) {
-    return -EIO;
+void gantry_move_to_pos(enum gantry_pos pos) {
+  // if axis requires calibration, must do homing first
+  if (!gantry.calibrated && pos != POS_HOME) {
+    pub_err(ERR_MOVE_BEFORE_CALIBRATED);
+    return;
   }
   const struct coords_in_mm *target = get_coords_for_position(pos);
   if (target->x > gantry.x.max_distance_in_mm ||
       target->y > gantry.y.max_distance_in_mm) {
-    return -EINVAL;
+    pub_err(ERR_COORDINATES_OUT_OF_BOUNDS);
+    return;
+  }
+
+  if (pos == POS_HOME) {
+    gantry_home();
+    return;
   }
 
   int32_t x_move = target->x - get_curr_axis_pos_in_mm(&gantry.x);
   if (target->x == 0) {
     stepper_run_until_limit_hit(gantry.x.stepper, 50);
+    // TODO parallelize axis moves
     k_sem_take(&gantry.x.event_sem, K_FOREVER);
   } else {
     stepper_set_speed(gantry.x.stepper, 50);
@@ -177,6 +188,85 @@ int gantry_move_to_pos(enum gantry_pos pos) {
                        millimeters_to_steps(&gantry.y, y_move));
     // TODO: better err handling
     k_sem_take(&gantry.y.event_sem, K_FOREVER);
+  }
+
+  pub_move_completed(pos);
+  return;
+}
+
+// --------------------
+// ---- CMD Thread ----
+// --------------------
+
+// max 2 messages, 32 bit alignment (4 bytes)
+K_MSGQ_DEFINE(gantry_cmdq, sizeof(struct gantry_cmd), 2, 4);
+
+K_THREAD_STACK_DEFINE(gantry_stack, 1024);
+static struct k_thread gantry_thread_data;
+
+static void gantry_thread_fn(void *a, void *b, void *c) {
+  ARG_UNUSED(a);
+  ARG_UNUSED(b);
+  ARG_UNUSED(c);
+
+  struct gantry_cmd cmd;
+
+  while (1) {
+    k_msgq_get(&gantry_cmdq, &cmd, K_FOREVER);
+
+    switch (cmd.type) {
+    case GANTRY_MOVE:
+      gantry_move_to_pos(cmd.target_pos);
+      // todo
+      break;
+    case GANTRY_HALT:
+      // TODO, this should be handled outside the thread
+      break;
+    }
+  }
+}
+
+/*
+  Public API
+*/
+
+int gantry_init(void) {
+  int ret;
+  if ((ret = steppers_init()) < 0) {
+    printk("steppers not ready\n");
+    return ret;
+  }
+
+  gantry.calibrated = false;
+  gantry.x = (struct axis){
+      .stepper = stepper_get(STEPPER_X_AXIS),
+      .micro_steps_per_mm = X_AXIS_MICRO_STEPS_PER_MM,
+      .max_distance_in_mm = X_AXIS_MAX_DISTANCE_IN_MM,
+  };
+  gantry.y = (struct axis){.stepper = stepper_get(STEPPER_Y_AXIS),
+                           .micro_steps_per_mm = Y_AXIS_MICRO_STEPS_PER_MM,
+                           .max_distance_in_mm = Y_AXIS_MAX_DISTANCE_IN_MM};
+
+  k_sem_init(&gantry.x.event_sem, 0, 1);
+  k_sem_init(&gantry.y.event_sem, 0, 1);
+
+  stepper_set_event_sem(gantry.x.stepper, &gantry.x.event_sem);
+  stepper_set_event_sem(gantry.y.stepper, &gantry.y.event_sem);
+
+  k_thread_create(&gantry_thread_data, gantry_stack,
+                  K_THREAD_STACK_SIZEOF(gantry_stack), gantry_thread_fn, NULL,
+                  NULL, NULL, 5, 0, K_NO_WAIT);
+
+  return 0;
+}
+
+void gantry_register_event_cb(gantry_event_cb_t cb) { gantry.event_cb = cb; }
+
+int gantry_cmd_send(struct gantry_cmd *cmd) {
+  // TODO let halt command skip the queue
+  int ret = k_msgq_put(&gantry_cmdq, cmd, K_NO_WAIT);
+  if (ret != 0) {
+    return ret;
   }
 
   return 0;

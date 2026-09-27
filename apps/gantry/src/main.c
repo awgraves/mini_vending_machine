@@ -18,6 +18,17 @@ void loop_message(const char *msg) {
   }
 }
 
+uint8_t cmd_idx;
+K_SEM_DEFINE(blocking_cmd_sem, 0, 1);
+
+void gantry_cb(const struct gantry_event *ev) {
+  if (ev->type != GANTRY_MOVE_COMPLETED) {
+    printf("Something went wrong. Err code %d\n",
+           (enum gantry_err_type)ev->data);
+  }
+  k_sem_give(&blocking_cmd_sem);
+}
+
 int main(void) {
   readings_t readings = {0};
 
@@ -35,18 +46,27 @@ int main(void) {
                                  stepper_get(STEPPER_Y_AXIS)};
 
   k_msleep(1000);
-  gantry_calibrate();
+
+  gantry_register_event_cb(gantry_cb);
 
   int ret;
-  for (int i = 1; i < 7; i++){
-    ret = gantry_move_to_pos((enum gantry_pos)i);
-    if (ret < 0){
+  struct gantry_cmd cmd;
+  for (cmd_idx = 0; cmd_idx < NUM_GANTRY_POSITIONS; cmd_idx++) {
+    cmd.type = GANTRY_MOVE;
+    cmd.target_pos = (enum gantry_pos)cmd_idx;
+
+    ret = gantry_cmd_send(&cmd);
+    if (ret < 0) {
+      printf("gantry cmd failed!\n");
       break;
     }
+    k_sem_take(&blocking_cmd_sem, K_FOREVER);
+
     k_msleep(1000);
   }
-
-  gantry_move_to_pos(POS_HOME);
+  cmd.target_pos = POS_HOME;
+  gantry_cmd_send(&cmd);
+  k_sem_take(&blocking_cmd_sem, K_FOREVER);
 
   while (1) {
     if (joystick_poll_dt(&joystick, &readings) < 0) {
