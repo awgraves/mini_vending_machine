@@ -51,9 +51,12 @@ int main(void) {
 
   int ret;
   struct gantry_cmd cmd;
-  for (cmd_idx = 0; cmd_idx < NUM_GANTRY_POSITIONS; cmd_idx++) {
+  enum gantry_pos positions[7] = {POS_A, POS_F, POS_C,   POS_D,
+                                  POS_B, POS_E, POS_HOME};
+  for (cmd_idx = 0; cmd_idx < (sizeof(positions) / sizeof(enum gantry_pos));
+       cmd_idx++) {
     cmd.type = GANTRY_MOVE;
-    cmd.target_pos = (enum gantry_pos)cmd_idx;
+    cmd.target_pos = (enum gantry_pos)positions[cmd_idx];
 
     ret = gantry_cmd_send(&cmd);
     if (ret < 0) {
@@ -64,9 +67,6 @@ int main(void) {
 
     k_msleep(1000);
   }
-  cmd.target_pos = POS_HOME;
-  gantry_cmd_send(&cmd);
-  k_sem_take(&blocking_cmd_sem, K_FOREVER);
 
   while (1) {
     if (joystick_poll_dt(&joystick, &readings) < 0) {

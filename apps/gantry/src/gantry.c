@@ -136,15 +136,24 @@ static bool axis_calibration(struct axis *a) {
   return true;
 }
 
-static void gantry_home(void) {
+enum gantry_home_mode {
+  GANTRY_HOME_SILENT_CALIBRATION,
+  GANTRY_HOME_EMIT_COMPLETION_EVENT
+};
+
+static bool gantry_home(enum gantry_home_mode mode) {
   // special logic for home moves, also covers calibration
   if (axis_calibration(&gantry.y) && axis_calibration(&gantry.x)) {
     gantry.calibrated = true;
-    pub_move_completed(POS_HOME);
-  } else {
-    gantry.calibrated = false;
-    pub_err(ERR_HOMING_FAILURE);
+    if (mode == GANTRY_HOME_EMIT_COMPLETION_EVENT) {
+      pub_move_completed(POS_HOME);
+    }
+    return true;
   }
+
+  gantry.calibrated = false;
+  pub_err(ERR_HOMING_FAILURE);
+  return false;
 }
 
 static inline void axis_move_to_mm_pos(struct axis *a, int target_mm) {
@@ -162,8 +171,10 @@ static inline void axis_move_to_mm_pos(struct axis *a, int target_mm) {
 static void gantry_move_to_pos(enum gantry_pos pos) {
   // if gantry requires calibration, must do homing first
   if (!gantry.calibrated && pos != POS_HOME) {
-    pub_err(ERR_MOVE_BEFORE_CALIBRATED);
-    return;
+    if (!gantry_home(GANTRY_HOME_SILENT_CALIBRATION)) {
+      return; // prevent actual move if homing failed
+    }
+    k_msleep(500); // small delay before next move
   }
   const struct coords_in_mm *target = get_coords_for_position(pos);
   if (target->x > gantry.x.max_distance_in_mm ||
@@ -173,7 +184,7 @@ static void gantry_move_to_pos(enum gantry_pos pos) {
   }
 
   if (pos == POS_HOME) {
-    gantry_home();
+    gantry_home(GANTRY_HOME_EMIT_COMPLETION_EVENT);
     return;
   }
 

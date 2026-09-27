@@ -28,7 +28,6 @@ enum gantry_event_type {
 };
 
 enum gantry_err_type {
-  ERR_MOVE_BEFORE_CALIBRATED,
   ERR_COORDINATES_OUT_OF_BOUNDS,
   ERR_HOMING_FAILURE,
 };
