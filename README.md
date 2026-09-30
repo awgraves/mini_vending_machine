@@ -24,4 +24,6 @@ For dfu-util (openocd flashing) & picocom (serial monitor) access, there are 2 o
 1. Before cloning the repo, first create a workspace dir ie `mkdir workspace`
 2. `cd` into the newly created dir and git clone this repo there.
 3. Ensure nix package manager and devenv is installed, then exec `devenv shell` to enter the development shell.
-All software dependencies will be automatically installed.
+All software dependencies will be automatically installed to a sandboxed environment!
+The first time setup will take some time, but subsequent dev shell loads will be super quick.
+You can leave the shell with `exit`.
