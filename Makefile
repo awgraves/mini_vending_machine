@@ -18,8 +18,11 @@ setup:
 	$(WEST) packages pip --install
 	# NOTE: the zephyr-sdk will be installed by the devenv rather than by west
 
-build:
+build_gantry:
 	$(WEST) build -p always -b $(BOARD) apps/gantry -d build
+
+build_dispenser:
+	$(WEST) build -p always -b $(BOARD) apps/dispenser -d build
 
 menuconfig:
 	$(WEST) build -t menuconfig

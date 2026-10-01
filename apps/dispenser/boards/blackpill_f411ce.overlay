@@ -1,0 +1,8 @@
+#include <zephyr/dt-bindings/pinctrl/stm32-pinctrl.h>
+
+/ {
+  aliases {
+    led = &user_led;
+    sw = &user_button;
+  };
+};
