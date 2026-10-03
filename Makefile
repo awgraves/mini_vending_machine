@@ -1,11 +1,23 @@
 VENV := .venv
-PY := $(VENV)/bin/python
+PY   := $(VENV)/bin/python
 WEST := $(VENV)/bin/west
 export ZEPHYR_TOOLCHAIN_VARIANT := zephyr
 
 BOARD := blackpill_f411ce
+APPS  := gantry dispenser
 
-.PHONY: setup build menuconfig debug flash monitor
+PORT := /dev/ttyACM0
+BAUD := 115200
+
+BUILD_TARGETS     := $(addprefix build-,$(APPS))
+FLASH_TARGETS     := $(addprefix flash-,$(APPS))
+MENUCONFIG_TARGETS := $(addprefix menuconfig-,$(APPS))
+DEBUG_TARGETS     := $(addprefix debug-,$(APPS))
+REBUILD_TARGETS   := $(addprefix rebuild-,$(APPS))
+
+.PHONY: setup build flash clean monitor \
+        $(BUILD_TARGETS) $(FLASH_TARGETS) $(MENUCONFIG_TARGETS) \
+        $(DEBUG_TARGETS) $(REBUILD_TARGETS)
 
 setup:
 	rm -rf $(VENV)
@@ -18,22 +30,26 @@ setup:
 	$(WEST) packages pip --install
 	# NOTE: the zephyr-sdk will be installed by the devenv rather than by west
 
-build_gantry:
-	$(WEST) build -p always -b $(BOARD) apps/gantry -d build
+# Static pattern rules: <targets>: <target-pattern>: <prereqs>
+$(BUILD_TARGETS): build-%:
+	$(WEST) build -p auto -b $(BOARD) apps/$* -d build/$* $(if $(EXTRA),-- $(EXTRA))
 
-build_dispenser:
-	$(WEST) build -p always -b $(BOARD) apps/dispenser -d build
+$(REBUILD_TARGETS): rebuild-%:
+	$(WEST) build -p always -b $(BOARD) apps/$* -d build/$*
 
-menuconfig:
-	$(WEST) build -t menuconfig
+$(FLASH_TARGETS): flash-%:
+	$(WEST) flash -d build/$*
 
-debug:
-	$(WEST) debug --board $(BOARD) --runner openocd -- --cmd-pre-init "reset_config none"
+$(MENUCONFIG_TARGETS): menuconfig-%:
+	$(WEST) build -d build/$* -t menuconfig
 
-flash:
-	 $(WEST) flash --board $(BOARD)
-	 #$(WEST) flash --board $(BOARD) --runner openocd -- --cmd-pre-init "reset_config none" 
+$(DEBUG_TARGETS): debug-%:
+	$(WEST) debug -d build/$* --runner openocd -- --cmd-pre-init "reset_config none"
+
+build: $(BUILD_TARGETS)
+
+clean:
+	rm -rf build
 
 monitor:
-	picocom -b 115200 /dev/ttyACM0
-
+	picocom -b $(BAUD) $(PORT)
