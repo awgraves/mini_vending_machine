@@ -1,8 +1,42 @@
 #include <zephyr/dt-bindings/pinctrl/stm32-pinctrl.h>
 
 / {
+
+  chosen {
+    zephyr,console = &cdc_acm_uart0;
+    zephyr,shell-uart = &cdc_acm_uart0;
+  };
+
   aliases {
     led = &user_led;
     sw = &user_button;
+    canbus = &mcp2515;
   };
+};
+
+&usart1 {
+  status = "okay";
+  parity = "none";
+  stop-bits = "1";
+  data-bits = <8>;
+};
+
+&zephyr_udc0 {
+  cdc_acm_uart0: cdc_acm_uart0 {
+    compatible = "zephyr,cdc-acm-uart";
+  };
+};
+
+&spi1 {
+    status = "okay";
+    cs-gpios = <&gpiob 0 GPIO_ACTIVE_LOW>;
+    
+    mcp2515: mcp2515@0 {
+        compatible = "microchip,mcp2515";
+        reg = <0x0>;
+        spi-max-frequency = <8000000>;
+        int-gpios = <&gpiob 1 GPIO_ACTIVE_LOW>;
+        osc-freq = <8000000>; /* 8 MHz crystal */
+        status = "okay";
+    };
 };
