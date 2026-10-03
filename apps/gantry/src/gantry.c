@@ -13,10 +13,10 @@
 #define X_AXIS_MM_PER_REV 40 // 20 tooth x 2mm
 #define X_AXIS_MICRO_STEPS_PER_MM                                              \
   (STEPPER_MICRO_STEPS_PER_REV / X_AXIS_MM_PER_REV)
-#define X_AXIS_MAX_DISTANCE_IN_MM 305
+#define X_AXIS_MAX_DISTANCE_IN_MM 310
 
 #define HOMING_SPEED_Y 20
-#define MAX_SPEED_Y 100
+#define MAX_SPEED_Y 50
 #define HOMING_SPEED_X 10
 #define MAX_SPEED_X 50
 
@@ -25,11 +25,11 @@ struct coords_in_mm {
   uint32_t y;
 };
 
-#define COL_1 305
-#define COL_2 205
-#define COL_3 105
-#define TOP_ROW 170
-#define BOTTOM_ROW 50
+#define COL_1 310
+#define COL_2 220
+#define COL_3 130
+#define TOP_ROW 102
+#define BOTTOM_ROW 0
 
 static const struct coords_in_mm positions[NUM_GANTRY_POSITIONS] = {
     [POS_HOME] = {.x = 0, .y = 0},
@@ -158,11 +158,14 @@ static bool gantry_home(enum gantry_home_mode mode) {
 
 static inline void axis_move_to_mm_pos(struct axis *a, int target_mm) {
   int32_t move_delta = target_mm - get_curr_axis_pos_in_mm(a);
+  printf("Target mm pos %d for %c\n", target_mm, a == &gantry.x ? 'x' : 'y');
   uint8_t speed = (a == &gantry.x) ? MAX_SPEED_X : MAX_SPEED_Y;
 
   if (target_mm == 0) {
-    stepper_run_until_limit_hit(gantry.x.stepper, speed);
+    stepper_run_until_limit_hit(a->stepper, speed);
+    printf("Run until limit hit...\n");
   } else {
+    printf("moving %d steps...\n", move_delta);
     stepper_set_speed(a->stepper, speed);
     stepper_move_steps(a->stepper, millimeters_to_steps(a, move_delta));
   }
@@ -180,11 +183,6 @@ static void gantry_move_to_pos(enum gantry_pos pos) {
   if (target->x > gantry.x.max_distance_in_mm ||
       target->y > gantry.y.max_distance_in_mm) {
     pub_err(ERR_COORDINATES_OUT_OF_BOUNDS);
-    return;
-  }
-
-  if (pos == POS_HOME) {
-    gantry_home(GANTRY_HOME_EMIT_COMPLETION_EVENT);
     return;
   }
 

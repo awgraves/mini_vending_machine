@@ -175,6 +175,7 @@ void limit_switch_isr(const struct device *dev, struct gpio_callback *cb,
       stepper_ctrl_set_reference_position(s->ctrl, 0);
       if (s->event_sem) {
         k_sem_give(s->event_sem);
+        printk("limit switch isr hit for %c\n", s->name);
       }
     }
   }
@@ -309,11 +310,13 @@ int stepper_run_until_limit_hit(struct stepper *s, uint8_t speed) {
     if (s->event_sem) {
       k_sem_give(s->event_sem);
     }
+    printk("already at limit %c\n", s->name);
     return 0;
   }
 
   int ret = stepper_set_speed(s, speed);
   if (ret != 0) {
+    // TODO: better err handle
     return ret;
   }
 
