@@ -45,3 +45,5 @@
 - M3 x 6mm screws & hex nuts x 16 pieces for inter-cubby attachments
 - M3 x 8mm screws & hex nuts x 12 pieces for drawer slide verticle attachments
 - [8inch drawer slides](https://www.amazon.com/dp/B0D62TB3V7) x 6 pieces
+- M5 x 12mm screws & hex nuts x 12 pieces for drawer slide to cubby attachment
+- M5 x 8mm screws & hex nuts x 10 pieces for cubby legs attachments
