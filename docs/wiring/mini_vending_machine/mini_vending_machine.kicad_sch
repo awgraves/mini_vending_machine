@@ -1,0 +1,87 @@
+(kicad_sch
+	(version 20260306)
+	(generator "eeschema")
+	(generator_version "10.0")
+	(uuid "9cb593e6-32bf-4361-a9bb-58d73e03be5a")
+	(paper "A4")
+	(title_block
+		(title "Mini Vending Machine")
+		(date "2026-10-06")
+		(rev "1.0")
+		(company "AO Embedded")
+		(comment 1 "Andrew Organist")
+	)
+	(lib_symbols)
+	(sheet
+		(at 24.13 25.4)
+		(size 78.74 57.15)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "45e4f3aa-c803-47fd-aafb-7de87d67a238")
+		(property "Sheetname" "Gantry Node"
+			(at 24.13 24.6884 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "gantry_node.kicad_sch"
+			(at 24.13 83.1346 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(pin "+5V" input
+			(at 63.5 25.4 90)
+			(uuid "4402a76f-0301-43ef-a9da-312cf26005f5")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "GND" input
+			(at 63.5 82.55 270)
+			(uuid "7589c5f1-d840-4355-aa38-3cea46d8537f")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(instances
+			(project "mini_vending_machine"
+				(path "/9cb593e6-32bf-4361-a9bb-58d73e03be5a"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+	(embedded_fonts no)
+)
