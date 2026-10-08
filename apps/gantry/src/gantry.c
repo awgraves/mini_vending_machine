@@ -16,7 +16,7 @@
 #define X_AXIS_MAX_DISTANCE_IN_MM 310
 
 #define HOMING_SPEED_Y 20
-#define MAX_SPEED_Y 50
+#define MAX_SPEED_Y 95
 #define HOMING_SPEED_X 10
 #define MAX_SPEED_X 50
 
@@ -28,7 +28,7 @@ struct coords_in_mm {
 #define COL_1 310
 #define COL_2 220
 #define COL_3 130
-#define TOP_ROW 102
+#define TOP_ROW 175
 #define BOTTOM_ROW 0
 
 static const struct coords_in_mm positions[NUM_GANTRY_POSITIONS] = {
@@ -120,15 +120,15 @@ static bool axis_calibration(struct axis *a) {
   if (stepper_get_is_at_limit(a->stepper)) {
     stepper_set_speed(a->stepper, speed);
     stepper_move_steps(a->stepper, millimeters_to_steps(a, 10));
-    k_sem_take(&a->event_sem, K_SECONDS(2));
-    k_msleep(50);
+    k_sem_take(&a->event_sem, K_SECONDS(5));
+    k_msleep(100);
     if (stepper_get_is_at_limit(a->stepper)) {
       return false;
     }
   }
 
   stepper_run_until_limit_hit(a->stepper, speed);
-  k_sem_take(&a->event_sem, K_SECONDS(10));
+  k_sem_take(&a->event_sem, K_SECONDS(15));
   if (!stepper_get_is_at_limit(a->stepper)) {
     return false;
   }
@@ -160,6 +160,8 @@ static inline void axis_move_to_mm_pos(struct axis *a, int target_mm) {
   int32_t move_delta = target_mm - get_curr_axis_pos_in_mm(a);
   printf("Target mm pos %d for %c\n", target_mm, a == &gantry.x ? 'x' : 'y');
   uint8_t speed = (a == &gantry.x) ? MAX_SPEED_X : MAX_SPEED_Y;
+
+  k_sem_reset(&a->event_sem);
 
   if (target_mm == 0) {
     stepper_run_until_limit_hit(a->stepper, speed);

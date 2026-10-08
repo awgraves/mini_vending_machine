@@ -44,7 +44,7 @@ int main(void) {
       break;
     }
     printf("Trying position %d...\n", positions[cmd_idx]);
-    ret = k_sem_take(&blocking_cmd_sem, K_SECONDS(10));
+    ret = k_sem_take(&blocking_cmd_sem, K_SECONDS(20));
     if (ret != 0) {
       printf("Timeout!\n");
     }
