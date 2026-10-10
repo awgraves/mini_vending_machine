@@ -8,6 +8,7 @@
 
   aliases {
     my-joystick = &joystick;
+    canbus = &mcp2515;
 
     steppers-uart = &usart1;
 
@@ -20,12 +21,26 @@
     stepper-limit-y = &step_limit_y;
   };
 
-  /* 
-    Note: reserve SPI1 pins for CAN module:
-    PA5 CLK
-    PA6 MISO
-    PA7 MOSI
-  */
+
+  &spi1 {
+      status = "okay";
+      cs-gpios = <&gpiob 0 GPIO_ACTIVE_LOW>;
+      /* 
+        Other SPI1 pins:
+        PA5 CLK
+        PA6 MISO
+        PA7 MOSI
+      */
+    
+      mcp2515: mcp2515@0 {
+          compatible = "microchip,mcp2515";
+          reg = <0x0>;
+          spi-max-frequency = <8000000>;
+          int-gpios = <&gpiob 1 GPIO_ACTIVE_LOW>;
+          osc-freq = <8000000>; /* 8 MHz crystal */
+          status = "okay";
+      };
+  };
 
   buttons {
     compatible = "gpio-keys";
