@@ -22,8 +22,6 @@ struct stepper *stepper_get(enum stepper_axis axis);
 void stepper_set_event_sem(struct stepper *s, struct k_sem *sem);
 
 int stepper_stop(struct stepper *s);
-// TODO: remove stepper_run once positioning logic exists
-int stepper_run(struct stepper *s, const struct stepper_run_conf *conf);
 
 /* Limit related funcs */
 bool stepper_get_is_at_limit(struct stepper *s);

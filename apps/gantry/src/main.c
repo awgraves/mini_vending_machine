@@ -31,6 +31,7 @@ int main(void) {
 
   int ret;
   struct gantry_cmd cmd;
+  // enum gantry_pos positions[4] = {POS_A, POS_HOME, POS_C, POS_HOME};
   enum gantry_pos positions[7] = {POS_A, POS_B, POS_C,   POS_D,
                                   POS_E, POS_F, POS_HOME};
   for (cmd_idx = 0; cmd_idx < (sizeof(positions) / sizeof(enum gantry_pos));
@@ -44,7 +45,7 @@ int main(void) {
       break;
     }
     printf("Trying position %d...\n", positions[cmd_idx]);
-    ret = k_sem_take(&blocking_cmd_sem, K_SECONDS(20));
+    ret = k_sem_take(&blocking_cmd_sem, K_SECONDS(30));
     if (ret != 0) {
       printf("Timeout!\n");
     }

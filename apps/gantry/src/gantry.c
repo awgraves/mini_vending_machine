@@ -16,7 +16,7 @@
 #define X_AXIS_MAX_DISTANCE_IN_MM 310
 
 #define HOMING_SPEED_Y 20
-#define MAX_SPEED_Y 95
+#define MAX_SPEED_Y 60
 #define HOMING_SPEED_X 10
 #define MAX_SPEED_X 50
 
@@ -110,7 +110,7 @@ static void pub_move_completed(enum gantry_pos pos) {
 // ---- Command handlers ----
 // --------------------------
 
-static bool axis_calibration(struct axis *a) {
+static bool axis_calibrate(struct axis *a) {
   /*
     If the switch is already engaged, back things up slightly,
     then assert it is no longer engaged before proceeding.
@@ -128,7 +128,7 @@ static bool axis_calibration(struct axis *a) {
   }
 
   stepper_run_until_limit_hit(a->stepper, speed);
-  k_sem_take(&a->event_sem, K_SECONDS(15));
+  k_sem_take(&a->event_sem, K_SECONDS(30));
   if (!stepper_get_is_at_limit(a->stepper)) {
     return false;
   }
@@ -136,18 +136,9 @@ static bool axis_calibration(struct axis *a) {
   return true;
 }
 
-enum gantry_home_mode {
-  GANTRY_HOME_SILENT_CALIBRATION,
-  GANTRY_HOME_EMIT_COMPLETION_EVENT
-};
-
-static bool gantry_home(enum gantry_home_mode mode) {
-  // special logic for home moves, also covers calibration
-  if (axis_calibration(&gantry.y) && axis_calibration(&gantry.x)) {
+static bool gantry_calibrate(void) {
+  if (axis_calibrate(&gantry.y) && axis_calibrate(&gantry.x)) {
     gantry.calibrated = true;
-    if (mode == GANTRY_HOME_EMIT_COMPLETION_EVENT) {
-      pub_move_completed(POS_HOME);
-    }
     return true;
   }
 
@@ -156,31 +147,48 @@ static bool gantry_home(enum gantry_home_mode mode) {
   return false;
 }
 
-static inline void axis_move_to_mm_pos(struct axis *a, int target_mm) {
+static inline void axis_move_to_mm_pos(struct axis *a, int target_mm,
+                                       uint8_t speed) {
   int32_t move_delta = target_mm - get_curr_axis_pos_in_mm(a);
-  printf("Target mm pos %d for %c\n", target_mm, a == &gantry.x ? 'x' : 'y');
-  uint8_t speed = (a == &gantry.x) ? MAX_SPEED_X : MAX_SPEED_Y;
-
   k_sem_reset(&a->event_sem);
 
   if (target_mm == 0) {
     stepper_run_until_limit_hit(a->stepper, speed);
-    printf("Run until limit hit...\n");
   } else {
-    printf("moving %d steps...\n", move_delta);
     stepper_set_speed(a->stepper, speed);
     stepper_move_steps(a->stepper, millimeters_to_steps(a, move_delta));
   }
 }
 
+static inline void gantry_move_home(void) {
+  axis_move_to_mm_pos(&gantry.y, positions[POS_HOME].y, HOMING_SPEED_Y);
+
+  int res;
+  res = k_sem_take(&gantry.y.event_sem, K_SECONDS(30));
+  if (res < 0) {
+    pub_err(ERR_HOMING_FAILURE);
+    return;
+  }
+
+  axis_move_to_mm_pos(&gantry.x, positions[POS_HOME].x, HOMING_SPEED_X);
+  res = k_sem_take(&gantry.x.event_sem, K_SECONDS(30));
+  if (res < 0) {
+    pub_err(ERR_HOMING_FAILURE);
+    return;
+  }
+
+  pub_move_completed(POS_HOME);
+}
+
 static void gantry_move_to_pos(enum gantry_pos pos) {
-  // if gantry requires calibration, must do homing first
-  if (!gantry.calibrated && pos != POS_HOME) {
-    if (!gantry_home(GANTRY_HOME_SILENT_CALIBRATION)) {
-      return; // prevent actual move if homing failed
+  // if gantry requires calibration, must do so first
+  if (!gantry.calibrated) {
+    if (!gantry_calibrate()) {
+      return; // prevent actual move if calibration failed
     }
     k_msleep(500); // small delay before next move
   }
+
   const struct coords_in_mm *target = get_coords_for_position(pos);
   if (target->x > gantry.x.max_distance_in_mm ||
       target->y > gantry.y.max_distance_in_mm) {
@@ -188,11 +196,18 @@ static void gantry_move_to_pos(enum gantry_pos pos) {
     return;
   }
 
-  axis_move_to_mm_pos(&gantry.x, target->x);
-  axis_move_to_mm_pos(&gantry.y, target->y);
+  // special speed and movement for home
+  if (pos == POS_HOME) {
+    gantry_move_home();
+    return;
+  }
 
-  k_sem_take(&gantry.x.event_sem, K_FOREVER);
-  k_sem_take(&gantry.y.event_sem, K_FOREVER);
+  axis_move_to_mm_pos(&gantry.x, target->x, MAX_SPEED_X);
+  axis_move_to_mm_pos(&gantry.y, target->y, MAX_SPEED_Y);
+
+  // TODO: pub err if pos failed
+  k_sem_take(&gantry.x.event_sem, K_SECONDS(15));
+  k_sem_take(&gantry.y.event_sem, K_SECONDS(15));
 
   pub_move_completed(pos);
   return;
