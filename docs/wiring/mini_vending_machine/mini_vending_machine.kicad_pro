@@ -429,7 +429,7 @@
         "uuid": "9cb593e6-32bf-4361-a9bb-58d73e03be5a"
       }
     ],
-    "used_designators": "M1-2,#PWR1-5,U1-3",
+    "used_designators": "J1-15,SW1-3,R1-8,D1-2,C1-11,M1-3,Y1-2,#PWR1-33,U1-7",
     "variants": []
   },
   "sheets": [
@@ -438,8 +438,24 @@
       "mini_vending_machine"
     ],
     [
+      "a451d1ee-4113-4968-91fc-9104ae4ffa3c",
+      "Power Module"
+    ],
+    [
       "45e4f3aa-c803-47fd-aafb-7de87d67a238",
       "Gantry Node"
+    ],
+    [
+      "b03b39fd-1113-4302-9ffc-89142ba87925",
+      "Stepper Module Y"
+    ],
+    [
+      "06c39c84-31bd-4e48-86d4-fc8261a20214",
+      "Stepper Module X"
+    ],
+    [
+      "c7c3d326-724d-40fb-a4a9-4239cb47e671",
+      "Modified MCP2515 CAN Module"
     ]
   ],
   "text_variables": {},
