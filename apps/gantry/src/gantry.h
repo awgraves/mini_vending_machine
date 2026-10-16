@@ -11,37 +11,21 @@ enum gantry_pos {
   NUM_GANTRY_POSITIONS
 };
 
-enum gantry_cmd_type {
-  GANTRY_MOVE,
-  GANTRY_HALT,
+enum gantry_result {
+  GANTRY_OK,
+  GANTRY_HALTED, // when intentionally halted
+  GANTRY_ERR_BUSY,
+  GANTRY_ERR_SW_FAILURE,
+  GANTRY_ERR_TIMEOUT,
 };
-
-struct gantry_cmd {
-  enum gantry_cmd_type type;
-  enum gantry_pos target_pos; // expected for GANTRY_MOVE cmds
-};
-
-enum gantry_event_type {
-  GANTRY_ERR,
-  GANTRY_MOVE_COMPLETED,
-  GANTRY_MOVE_HALTED,
-};
-
-enum gantry_err_type {
-  ERR_COORDINATES_OUT_OF_BOUNDS,
-  ERR_HOMING_FAILURE,
-};
-
-struct gantry_event {
-  enum gantry_event_type type;
-  void *data; // depends on event type
-};
-
-// make sure this func is short and non-blocking
-typedef void (*gantry_event_cb_t) (const struct gantry_event *ev);
 
 int gantry_init(void);
-void gantry_register_event_cb(gantry_event_cb_t cb);
 
-// 0 ret = successfully sent, might be -int if queue is full
-int gantry_cmd_send(struct gantry_cmd *cmd);
+// gantry_move is a blocking call until move finishes, errs,
+// or gets halted by another thread.
+enum gantry_result gantry_move(enum gantry_pos target_pos);
+
+// gantry_halt can be called at any time from any thread.
+// if a move is in progress on another thread,
+// that move will end with a GANTRY_HALTED result.
+void gantry_halt(void);
