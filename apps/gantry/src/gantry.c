@@ -1,5 +1,6 @@
 #include "gantry.h"
 #include "steppers.h"
+#include "zephyr/sys/clock.h"
 #include <zephyr/kernel.h>
 
 #define STEPPER_MICRO_STEPS_PER_REV                                            \
@@ -47,11 +48,16 @@ static const struct coords_in_mm positions[NUM_GANTRY_POSITIONS] = {
     [POS_E] = {.x = COL_2, .y = BOTTOM_ROW},
     [POS_F] = {.x = COL_3, .y = BOTTOM_ROW}};
 
+static struct k_event gantry_events;
+#define EVENT_X_DONE BIT(0)
+#define EVENT_Y_DONE BIT(1)
+#define EVENT_ABORT BIT(2)
+
 struct axis {
-  struct k_sem event_sem;
   struct stepper *stepper;
   uint32_t micro_steps_per_mm;
   uint32_t max_distance_in_mm;
+  uint32_t done_bit;
 };
 
 struct gantry {
@@ -90,14 +96,34 @@ get_coords_for_position(enum gantry_pos pos) {
 // --------------
 // ---- Wait ----
 // --------------
+static enum gantry_result wait_for_axes(uint32_t axes_mask, int timeout_s) {
+  uint32_t done = 0;
 
-static inline void axis_reset_event_sem(struct axis *a) {
-  k_sem_reset(&a->event_sem);
-}
+  k_timepoint_t deadline = sys_timepoint_calc(K_SECONDS(timeout_s));
 
-static enum gantry_result wait_for_axis(struct axis *a, int timeout_s) {
-  return k_sem_take(&a->event_sem, K_SECONDS(timeout_s)) ? GANTRY_ERR_TIMEOUT
-                                                         : GANTRY_OK;
+  enum gantry_result res = GANTRY_OK;
+
+  while ((done & axes_mask) != axes_mask) {
+    uint32_t ev =
+        k_event_wait(&gantry_events, (~done & axes_mask) | EVENT_ABORT, false,
+                     sys_timepoint_timeout(deadline));
+
+    if (ev == 0) {
+      res = GANTRY_ERR_TIMEOUT;
+      break;
+    }
+
+    if (ev & EVENT_ABORT) {
+      res = GANTRY_HALTED;
+      break;
+    }
+
+    done |= ev & axes_mask;
+  }
+
+  k_event_clear(&gantry_events, EVENT_X_DONE | EVENT_Y_DONE | EVENT_ABORT);
+
+  return res;
 }
 
 // -----------------------------
@@ -105,7 +131,6 @@ static enum gantry_result wait_for_axis(struct axis *a, int timeout_s) {
 // -----------------------------
 static void axis_move_to_mm_pos(struct axis *a, int target_mm, uint8_t speed) {
   int32_t move_delta = target_mm - get_curr_axis_pos_in_mm(a);
-  axis_reset_event_sem(a);
 
   if (target_mm == 0) {
     stepper_run_until_limit_hit(a->stepper, speed);
@@ -118,7 +143,7 @@ static void axis_move_to_mm_pos(struct axis *a, int target_mm, uint8_t speed) {
 static enum gantry_result axis_move_and_wait(struct axis *a, int target_mm,
                                              uint8_t speed, int timeout_s) {
   axis_move_to_mm_pos(a, target_mm, speed);
-  return wait_for_axis(a, timeout_s);
+  return wait_for_axes(a->done_bit, timeout_s);
 }
 
 // ---------------------
@@ -131,7 +156,6 @@ static enum gantry_result axis_calibrate(struct axis *a) {
     then assert it is no longer engaged before proceeding.
     This adds extra assurance that an engaged switch is an accurate reading.
   */
-  axis_reset_event_sem(a);
   struct stepper *s = a->stepper;
   uint8_t speed = (a == &gantry.x) ? HOMING_SPEED_X : HOMING_SPEED_Y;
 
@@ -140,7 +164,7 @@ static enum gantry_result axis_calibrate(struct axis *a) {
   if (stepper_get_is_at_limit(s)) {
     stepper_set_speed(s, speed);
     stepper_move_steps(s, millimeters_to_steps(a, 10));
-    res = wait_for_axis(a, 5);
+    res = wait_for_axes(a->done_bit, 5);
     if (res != GANTRY_OK) {
       return res;
     }
@@ -151,7 +175,7 @@ static enum gantry_result axis_calibrate(struct axis *a) {
   }
 
   stepper_run_until_limit_hit(s, speed);
-  res = wait_for_axis(a, 30);
+  res = wait_for_axes(a->done_bit, 30);
   if (res != GANTRY_OK) {
     return res;
   }
@@ -179,7 +203,6 @@ static enum gantry_result gantry_calibrate(void) {
 static enum gantry_result gantry_move_to_home(void) {
   struct coords_in_mm home = positions[POS_HOME];
 
-  // TODO: allow cancellation
   enum gantry_result res =
       axis_move_and_wait(&gantry.y, home.y, HOMING_SPEED_Y, 30);
   if (res == GANTRY_OK) {
@@ -204,12 +227,7 @@ static enum gantry_result gantry_move_to_cubby(enum gantry_pos pos) {
   axis_move_to_mm_pos(&gantry.x, target->x, MAX_SPEED_X);
   axis_move_to_mm_pos(&gantry.y, target->y, MAX_SPEED_Y);
 
-  // TODO: allow cancellation
-  res = wait_for_axis(&gantry.x, 15);
-  if (res == GANTRY_OK) {
-    res = wait_for_axis(&gantry.y, 15);
-  }
-
+  res = wait_for_axes(gantry.x.done_bit | gantry.y.done_bit, 15);
   return res;
 }
 
@@ -230,16 +248,18 @@ int gantry_init(void) {
       .stepper = stepper_get(STEPPER_X_AXIS),
       .micro_steps_per_mm = X_AXIS_MICRO_STEPS_PER_MM,
       .max_distance_in_mm = X_AXIS_MAX_DISTANCE_IN_MM,
+      .done_bit = EVENT_X_DONE,
   };
-  gantry.y = (struct axis){.stepper = stepper_get(STEPPER_Y_AXIS),
-                           .micro_steps_per_mm = Y_AXIS_MICRO_STEPS_PER_MM,
-                           .max_distance_in_mm = Y_AXIS_MAX_DISTANCE_IN_MM};
+  gantry.y = (struct axis){
+      .stepper = stepper_get(STEPPER_Y_AXIS),
+      .micro_steps_per_mm = Y_AXIS_MICRO_STEPS_PER_MM,
+      .max_distance_in_mm = Y_AXIS_MAX_DISTANCE_IN_MM,
+      .done_bit = EVENT_Y_DONE,
+  };
 
-  k_sem_init(&gantry.x.event_sem, 0, 1);
-  k_sem_init(&gantry.y.event_sem, 0, 1);
-
-  stepper_set_event_sem(gantry.x.stepper, &gantry.x.event_sem);
-  stepper_set_event_sem(gantry.y.stepper, &gantry.y.event_sem);
+  k_event_init(&gantry_events);
+  stepper_set_done_event(gantry.x.stepper, &gantry_events, gantry.x.done_bit);
+  stepper_set_done_event(gantry.y.stepper, &gantry_events, gantry.y.done_bit);
 
   return 0;
 }
@@ -257,6 +277,8 @@ enum gantry_result gantry_move(enum gantry_pos pos) {
 }
 
 void gantry_halt(void) {
-  // TODO;
+  stepper_stop(gantry.x.stepper);
+  stepper_stop(gantry.y.stepper);
+  k_event_post(&gantry_events, EVENT_ABORT);
   return;
 }

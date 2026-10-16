@@ -11,10 +11,16 @@
 
 struct stepper {
   const char name;
+  // hardware handles
   const struct device *driver;
   const struct device *ctrl;
   const struct gpio_dt_spec limit_sw;
-  struct k_sem *event_sem;
+
+  // signals for completion
+  struct k_event *done_ev;
+  uint32_t done_mask;
+
+  // internal async
   struct gpio_callback limit_cb;
   struct k_work_delayable limit_rearm_work;
   atomic_t limit_latched;
@@ -28,14 +34,12 @@ static struct stepper steppers[STEPPER_AXIS_COUNT] = {
             .driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver_x)),
             .ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_x)),
             .limit_sw = GPIO_DT_SPEC_GET(DT_ALIAS(stepper_limit_x), gpios),
-            .event_sem = NULL,
         },
     [STEPPER_Y_AXIS] = {
         .name = 'Y',
         .driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver_y)),
         .ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl_y)),
         .limit_sw = GPIO_DT_SPEC_GET(DT_ALIAS(stepper_limit_y), gpios),
-        .event_sem = NULL,
     }};
 
 static const struct device *const uart_dev =
@@ -166,7 +170,17 @@ void read(uint8_t reg) {
 }
 #endif
 
+// Events
+
+static inline void stepper_done_event(struct stepper *s) {
+  if (s->done_ev) {
+    k_event_post(s->done_ev, s->done_mask);
+  }
+}
+
+// -------------------------
 // ---- Limit Switches -----
+// -------------------------
 
 #define LIMIT_REARM_MS 20
 
@@ -183,9 +197,7 @@ static void limit_switch_isr(const struct device *port,
   }
   stepper_stop(s);
   stepper_ctrl_set_reference_position(s->ctrl, 0);
-  if (s->event_sem) {
-    k_sem_give(s->event_sem);
-  }
+  stepper_done_event(s);
   k_work_reschedule(&s->limit_rearm_work, K_MSEC(LIMIT_REARM_MS));
 }
 
@@ -196,7 +208,9 @@ static void limit_rearm_handler(struct k_work *work) {
   atomic_clear(&s->limit_latched);
 }
 
+// ----------------------
 // ---- Motor Events ----
+// ----------------------
 
 static void stepper_event_callback(const struct device *dev,
                                    const enum stepper_ctrl_event event,
@@ -205,16 +219,17 @@ static void stepper_event_callback(const struct device *dev,
   switch (event) {
   case STEPPER_CTRL_EVENT_STEPS_COMPLETED:
     struct stepper *s = (struct stepper *)user_data;
-    if (s->event_sem) {
-      k_sem_give(s->event_sem);
-    }
+    stepper_done_event(s);
     break;
   default:
     break;
   }
 }
 
+// --------------
 // ---- Misc ----
+// --------------
+
 static inline uint64_t get_microstep_interval(uint8_t speed) {
   return NS_INTERVAL_SLOWEST - (NS_INTERVAL_PER_TICK * speed);
 };
@@ -291,8 +306,10 @@ int steppers_init(void) {
 
 struct stepper *stepper_get(enum stepper_axis axis) { return &steppers[axis]; }
 
-void stepper_set_event_sem(struct stepper *s, struct k_sem *sem) {
-  s->event_sem = sem;
+void stepper_set_done_event(struct stepper *s, struct k_event *done_ev,
+                            uint32_t done_mask) {
+  s->done_ev = done_ev;
+  s->done_mask = done_mask;
 }
 
 int stepper_stop(struct stepper *s) { return stepper_ctrl_stop(s->ctrl); }
@@ -307,9 +324,7 @@ int stepper_read_curr_step_count(struct stepper *s, int32_t *pos) {
 
 int stepper_run_until_limit_hit(struct stepper *s, uint8_t speed) {
   if (stepper_get_is_at_limit(s)) {
-    if (s->event_sem) {
-      k_sem_give(s->event_sem);
-    }
+    stepper_done_event(s);
     return 0;
   }
 
@@ -335,9 +350,7 @@ int stepper_set_speed(struct stepper *s, uint8_t speed) {
 int stepper_move_steps(struct stepper *s, int32_t micro_steps) {
   if (micro_steps == 0) {
     // do nothing
-    if (s->event_sem) {
-      k_sem_give(s->event_sem);
-    }
+    stepper_done_event(s);
     return 0;
   }
 

@@ -19,7 +19,7 @@ struct stepper_run_conf {
 int steppers_init(void);
 struct stepper *stepper_get(enum stepper_axis axis);
 
-void stepper_set_event_sem(struct stepper *s, struct k_sem *sem);
+void stepper_set_done_event(struct stepper *s, struct k_event *done_ev, uint32_t done_mask);
 
 int stepper_stop(struct stepper *s);
 
