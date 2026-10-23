@@ -24,6 +24,8 @@
 - 10k ohm pullup resistors for switches x 2 pieces
 - [TMC2209 stepper motor drivers](https://www.amazon.com/dp/B08WZFK9KT) x 2 pieces
 - [100uF 50V electrolytic capacitors](https://www.amazon.com/dp/B0FVG9S7N6) for motor driver decoupling x 2 pieces
+- M3 x 6mm screws x 2 pieces for gantry pcb to cubby mount (rear)
+- M3 x 10mm screws x 2 pieces for gantry pcb to cubby mount (front)
 
 ### X Axis
 - [350mm vslot 2040](https://www.amazon.com/dp/B08X4NFVT6) (400mm cut down to 350mm)
@@ -42,8 +44,17 @@
 - M3 x 8mm screws & T nuts x 18 pieces for rail attachment
 
 ## Dispenser
+
+### Cubbies
 - M3 x 6mm screws & hex nuts x 16 pieces for inter-cubby attachments
 - M3 x 8mm screws & hex nuts x 12 pieces for drawer slide verticle attachments
 - [8inch drawer slides](https://www.amazon.com/dp/B0D62TB3V7) x 6 pieces
 - M5 x 12mm screws & hex nuts x 12 pieces for drawer slide to cubby attachment
 - M5 x 8mm screws & hex nuts x 10 pieces for cubby legs attachments
+
+### Sleeves
+- M3 x 10mm screws & hex nuts & washers x 12 pieces for back plate to sleeve mounts
+- M3 x 6mm screws & hex nuts x 6 pieces for sleeve to drawer slide attachment
+- M3 x 12mm screws & hex nuts x 12 pieces for IR beam emitter/sensor mounts
+- [5v brushed DC motors](https://www.amazon.com/dp/B09DG3GCGK) x 6 pieces
+- [5v IR breakbeam sensors](https://www.amazon.com/dp/B0GVJX2M1L) x 6 pairs
