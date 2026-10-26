@@ -7,8 +7,8 @@
 - [L corner brackets](https://www.amazon.com/dp/B0F31DXF4F) x 12 pieces
 
 ## 3D Printer Filaments
-- [Black PETG](https://www.amazon.com/dp/B07PGYHYV8)
-- [White PLA+](https://www.amazon.com/dp/B09Q5YJ5HZ)
+- [Overture Black PETG](https://www.amazon.com/dp/B07PGYHYV8)
+- [eSun White PLA+](https://www.amazon.com/dp/B09Q5YJ5HZ)
 
 ## PCB Boards, Wires, Connectors
 - [9x15cm double sided prototype circuit boards](https://www.amazon.com/dp/B08WJBS4HK) x 2 pieces
@@ -33,6 +33,7 @@
 - [GT2 6mm wide timing belt kit](https://www.amazon.com/dp/B07TGGVSTP)  x 1 piece
 - M3 x 8mm screws & T nuts x 16 pieces for rail attachment
 - [Nema 17 mount plate](https://www.amazon.com/dp/B07V3Q4WFL) x 1 piece
+- M5 x 10mm screws & washers & T nuts x 3 pieces for T screw carriage to aluminum rail attachment
 
 ### Y Axis
 - [300mm T8 leadscrew](https://www.amazon.com/dp/B0981YZ7DN) x 1 piece
@@ -42,6 +43,8 @@
 - Bearing (came with [this kit](https://www.amazon.com/dp/B08T9PL29W)) x 1 piece
 - [400mm MGN9 linear rail](https://www.amazon.com/dp/B094CXXPLG)
 - M3 x 8mm screws & T nuts x 18 pieces for rail attachment
+- M3 x 10mm screws & washers x 4 pieces for rail carriage to aluminum arm attachment
+- M5 x 10mm & washers & T nuts x 3 pieces for rail carriage to aluminum arm attachment
 
 ## Dispenser
 
