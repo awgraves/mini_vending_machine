@@ -9,8 +9,14 @@
 
   aliases {
     led = &user_led;
-    sw = &user_button;
-    canbus = &mcp2515;
+    beam0 = &beam0;
+  };
+
+  beams {
+    compatible = "gpio-keys";
+    beam0: beam_0 {
+      gpios = <&gpiob 4 GPIO_ACTIVE_LOW>;
+    };
   };
 };
 
@@ -25,18 +31,4 @@
   cdc_acm_uart0: cdc_acm_uart0 {
     compatible = "zephyr,cdc-acm-uart";
   };
-};
-
-&spi1 {
-    status = "okay";
-    cs-gpios = <&gpiob 0 GPIO_ACTIVE_LOW>;
-    
-    mcp2515: mcp2515@0 {
-        compatible = "microchip,mcp2515";
-        reg = <0x0>;
-        spi-max-frequency = <8000000>;
-        int-gpios = <&gpiob 1 GPIO_ACTIVE_LOW>;
-        osc-freq = <8000000>; /* 8 MHz crystal */
-        status = "okay";
-    };
 };
