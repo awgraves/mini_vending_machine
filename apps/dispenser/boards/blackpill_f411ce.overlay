@@ -10,12 +10,27 @@
   aliases {
     led = &user_led;
     beam0 = &beam0;
+    btn = &btn;
+    motor0 = &motor0;
   };
 
-  beams {
+  switches {
     compatible = "gpio-keys";
+
     beam0: beam_0 {
       gpios = <&gpiob 4 GPIO_ACTIVE_LOW>;
+    };
+
+    btn: btn {
+      gpios = <&gpiob 3 GPIO_ACTIVE_HIGH>;
+    };
+  };
+
+  motors {
+    compatible = "gpio-leds";
+
+    motor0: motor_0 {
+      gpios = <&gpiob 0 GPIO_ACTIVE_HIGH>;
     };
   };
 };
