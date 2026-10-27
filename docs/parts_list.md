@@ -44,6 +44,7 @@
 - [400mm MGN9 linear rail](https://www.amazon.com/dp/B094CXXPLG)
 - M3 x 8mm screws & T nuts x 18 pieces for rail attachment
 - M3 x 10mm screws & washers x 4 pieces for rail carriage to aluminum arm attachment
+- M3 x 10mm screws x 4 pieces for basket to rail carriage attachments
 - M5 x 10mm & washers & T nuts x 3 pieces for rail carriage to aluminum arm attachment
 
 ## Dispenser
