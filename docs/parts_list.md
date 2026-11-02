@@ -38,6 +38,7 @@
 ### Y Axis
 - [300mm T8 leadscrew](https://www.amazon.com/dp/B0981YZ7DN) x 1 piece
 - [Backlash-resistant T8 leadscrew nut](https://www.amazon.com/dp/B0B2P9KBH8) x 1 piece
+- M5 x 12mm & T nuts x 3 pieces for y axis stepper mount
 - M5 x 16mm & hex nuts x 2 pieces to connect leadscrew nut to carriage wedge
 - [5mm to 8mm flexible coupling for Nema 17](https://www.amazon.com/dp/B079J22KX1) x 1 piece
 - Bearing (came with [this kit](https://www.amazon.com/dp/B08T9PL29W)) x 1 piece
