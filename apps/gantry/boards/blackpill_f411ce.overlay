@@ -7,7 +7,6 @@
   };
 
   aliases {
-    my-joystick = &joystick;
     canbus = &mcp2515;
 
     steppers-uart = &usart1;
@@ -32,12 +31,6 @@
       gpios = <&gpiob 12 GPIO_ACTIVE_LOW>;
     };
 
-  };
-
-  joystick: joystick {
-    compatible = "joystick";
-    io-channels = <&adc1 8 &adc1 9>;
-    io-channel-names = "x", "y";
   };
 
   tmc2209_x: stepper-driver-x {
@@ -83,16 +76,6 @@
   };
 };
 
-&pinctrl {
-  adc1_in8_pb0: adc1_in8_pb0 {
-    pinmux = <STM32_PINMUX('B', 0, ANALOG)>;
-  };
-
-  adc1_in9_pb1: adc1_in9_pb1 {
-    pinmux = <STM32_PINMUX('B', 1, ANALOG)>;
-  };
-};
-
 /* 
   Other SPI1 pins:
   PA5 CLK
@@ -112,28 +95,6 @@
         osc-freq = <8000000>; /* 8 MHz crystal */
         status = "okay";
     };
-};
-
-#define JOYSTICK_ADC_COMMON \
-    zephyr,gain = "ADC_GAIN_1"; \
-    zephyr,reference = "ADC_REF_INTERNAL"; \
-    zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>; \
-    zephyr,resolution = <12>;
-
-&adc1 {
-  #address-cells = <1>;
-  #size-cells = <0>;
-  pinctrl-0 = <&adc1_in8_pb0>, < &adc1_in9_pb1 >;
-
-  channel@8 {
-    reg = <8>;
-    JOYSTICK_ADC_COMMON
-  };
-
-  channel@9 {
-    reg = <9>;
-    JOYSTICK_ADC_COMMON
-  };
 };
 
 &timers2 {
