@@ -219,6 +219,7 @@ static void stepper_event_callback(const struct device *dev,
   switch (event) {
   case STEPPER_CTRL_EVENT_STEPS_COMPLETED:
     struct stepper *s = (struct stepper *)user_data;
+    atomic_clear(&s->moving_towards_limit);
     stepper_done_event(s);
     break;
   default:

@@ -17,7 +17,7 @@
 #define X_AXIS_MAX_DISTANCE_IN_MM 310
 
 #define HOMING_SPEED_Y 20
-#define MAX_SPEED_Y 60
+#define MAX_SPEED_Y 70
 #define HOMING_SPEED_X 10
 #define MAX_SPEED_X 50
 
@@ -26,7 +26,7 @@ struct coords_in_mm {
   uint32_t y;
 };
 
-#define COL_1 310
+#define COL_1 308
 #define COL_2 220
 #define COL_3 130
 #define TOP_ROW 175

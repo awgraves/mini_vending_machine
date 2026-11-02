@@ -60,7 +60,6 @@
     stepper-driver = <&tmc2209_y>;
     invert-direction;
   };
-
 };
 
 &usart1 {
@@ -109,4 +108,8 @@
   counter2: counter {
     status="okay";
   };
+};
+
+&user_button {
+  status="okay";
 };
