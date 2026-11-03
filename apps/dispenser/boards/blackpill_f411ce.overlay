@@ -10,8 +10,9 @@
   aliases {
     led = &user_led;
     beam0 = &beam0;
-    btn = &btn;
     motor0 = &motor0;
+    motor1 = &motor1;
+    motor2 = &motor2;
   };
 
   switches {
@@ -20,17 +21,19 @@
     beam0: beam_0 {
       gpios = <&gpiob 4 GPIO_ACTIVE_LOW>;
     };
-
-    btn: btn {
-      gpios = <&gpiob 3 GPIO_ACTIVE_HIGH>;
-    };
   };
 
   motors {
-    compatible = "gpio-leds";
+    compatible = "gpio-motor-ctrls";
 
-    motor0: motor_0 {
-      gpios = <&gpiob 0 GPIO_ACTIVE_HIGH>;
+    motor0: motor_a {
+      gpios = <&SIPO 1 GPIO_ACTIVE_HIGH>;
+    };
+    motor1: motor_b {
+      gpios = <&SIPO 2 GPIO_ACTIVE_HIGH>;
+    };
+    motor2: motor_c {
+      gpios = <&SIPO 3 GPIO_ACTIVE_HIGH>;
     };
   };
 };
@@ -45,5 +48,21 @@
 &zephyr_udc0 {
   cdc_acm_uart0: cdc_acm_uart0 {
     compatible = "zephyr,cdc-acm-uart";
+  };
+};
+
+&spi2 {
+  status="okay";
+  pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15>;
+  pinctrl-names = "default";
+  cs-gpios = <&gpiob 5 GPIO_ACTIVE_LOW>;
+
+  SIPO: sn74hc595@0 {
+    reg = <0>;
+    compatible = "ti,sn74hc595";
+    spi-max-frequency = <1000000>;
+    gpio-controller;
+    ngpios = <8>;
+    #gpio-cells = <2>;
   };
 };

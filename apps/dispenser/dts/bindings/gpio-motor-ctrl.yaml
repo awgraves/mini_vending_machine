@@ -1,0 +1,9 @@
+description: A group of GPIO pins that control motor outputs.
+compatible: "gpio-motor-ctrls"
+
+child-binding:
+  description: A single GPIO pin that controls a single motor via an external transistor.
+  properties:
+    gpios:
+      type: phandle-array
+      required: true
