@@ -275,6 +275,9 @@ int steppers_init(void) {
       return ret;
     }
 
+    gpio_init_callback(&stepper->limit_cb, limit_switch_isr,
+                       BIT(stepper->limit_sw.pin));
+    gpio_add_callback(stepper->limit_sw.port, &stepper->limit_cb);
     if ((ret = gpio_pin_interrupt_configure_dt(&stepper->limit_sw,
                                                GPIO_INT_EDGE_TO_ACTIVE)) < 0) {
       log_err(stepper, "faled to configure limit interrupt");
@@ -282,11 +285,6 @@ int steppers_init(void) {
     }
 
     k_work_init_delayable(&stepper->limit_rearm_work, limit_rearm_handler);
-    gpio_init_callback(&stepper->limit_cb, limit_switch_isr,
-                       BIT(stepper->limit_sw.pin));
-    gpio_add_callback(stepper->limit_sw.port, &stepper->limit_cb);
-    gpio_pin_interrupt_configure_dt(&stepper->limit_sw,
-                                    GPIO_INT_EDGE_TO_ACTIVE);
     k_msleep(LIMIT_REARM_MS);
 
     // Movement completion cb setup
