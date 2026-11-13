@@ -825,10 +825,10 @@
 			)
 		)
 		(pin "2"
-			(uuid "78583c33-c2df-4a3a-9bbc-508489213f16")
+			(uuid "78583c33-c2df-4a3a-9bbc-508489213f17")
 		)
 		(pin "1"
-			(uuid "f0b3709d-3417-492c-baf3-57d42da011e1")
+			(uuid "f0b3709d-3417-492c-baf3-57d42da011e2")
 		)
 		(instances
 			(project "mini_vending_machine"
@@ -907,10 +907,10 @@
 			)
 		)
 		(pin "2"
-			(uuid "78583c33-c2df-4a3a-9bbc-508489213f16")
+			(uuid "78583c33-c2df-4a3a-9bbc-508489213f18")
 		)
 		(pin "1"
-			(uuid "f0b3709d-3417-492c-baf3-57d42da011e1")
+			(uuid "f0b3709d-3417-492c-baf3-57d42da011e3")
 		)
 		(instances
 			(project "mini_vending_machine"
@@ -1074,10 +1074,10 @@
 			)
 		)
 		(pin "2"
-			(uuid "78583c33-c2df-4a3a-9bbc-508489213f16")
+			(uuid "78583c33-c2df-4a3a-9bbc-508489213f19")
 		)
 		(pin "1"
-			(uuid "f0b3709d-3417-492c-baf3-57d42da011e1")
+			(uuid "f0b3709d-3417-492c-baf3-57d42da011e4")
 		)
 		(instances
 			(project "mini_vending_machine"
@@ -1154,10 +1154,10 @@
 			)
 		)
 		(pin "2"
-			(uuid "78583c33-c2df-4a3a-9bbc-508489213f16")
+			(uuid "78583c33-c2df-4a3a-9bbc-508489213f1a")
 		)
 		(pin "1"
-			(uuid "f0b3709d-3417-492c-baf3-57d42da011e1")
+			(uuid "f0b3709d-3417-492c-baf3-57d42da011e5")
 		)
 		(instances
 			(project "mini_vending_machine"

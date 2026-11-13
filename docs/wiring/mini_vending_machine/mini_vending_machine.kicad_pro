@@ -429,7 +429,7 @@
         "uuid": "9cb593e6-32bf-4361-a9bb-58d73e03be5a"
       }
     ],
-    "used_designators": "J1-15,SW1-3,R1-8,D1-2,C1-11,M1-3,Y1-2,#PWR1-33,U1-7",
+    "used_designators": "J1-40,SW1-3,R1-21,D1-8,C1-14,M1-8,Y1-2,#PWR1-60,U1-17",
     "variants": []
   },
   "sheets": [
@@ -456,6 +456,38 @@
     [
       "c7c3d326-724d-40fb-a4a9-4239cb47e671",
       "Modified MCP2515 CAN Module"
+    ],
+    [
+      "8f2ddfc3-342c-4475-8912-198fa59dfba9",
+      "Dispenser Node"
+    ],
+    [
+      "f6d5cf06-3781-4de3-bd8a-2f4762343c25",
+      "Modified MCP2515 CAN Module"
+    ],
+    [
+      "3571974a-06f6-40e8-aca8-200459b45747",
+      "Dispense Module A"
+    ],
+    [
+      "3247df18-1a99-460f-bd36-26ba1adcf265",
+      "Dispense Module B"
+    ],
+    [
+      "5987f244-4402-418e-82ed-929e65cbf461",
+      "Dispense Module C"
+    ],
+    [
+      "f8c7a28d-0da9-471a-9414-d76da21e7a80",
+      "Dispense Module D"
+    ],
+    [
+      "85dcb4fb-4903-4194-8310-083b48721aa9",
+      "Dispense Module E"
+    ],
+    [
+      "a02e67b6-56d5-4d43-bce7-a58f269be4ae",
+      "Dispense Module F"
     ]
   ],
   "text_variables": {},

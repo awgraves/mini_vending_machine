@@ -16,6 +16,9 @@
 - [22 awg solid core wire](https://www.amazon.com/dp/B07TX6BX47)
 - TODO, jst connector info
 
+## CAN Bus
+- 120ohm terminal resistors x 2 pieces
+
 ## Gantry
 - [STM32 blackpill F411CE](https://www.amazon.com/dp/B0DLNDY4V7) x 1 piece
 - [nema 17 pancake stepper motors](https://www.amazon.com/dp/B088BNVTBF) x 2 pieces
@@ -24,6 +27,7 @@
 - 10k ohm pullup resistors for switches x 2 pieces
 - [TMC2209 stepper motor drivers](https://www.amazon.com/dp/B08WZFK9KT) x 2 pieces
 - [100uF 50V electrolytic capacitors](https://www.amazon.com/dp/B0FVG9S7N6) for motor driver decoupling x 2 pieces
+- [MCP2515 SPI CAN Module](https://www.amazon.com/dp/B07J9KZ4L4) x 1 piece
 - M3 x 6mm screws x 2 pieces for gantry pcb to cubby mount (rear)
 - M3 x 10mm screws x 2 pieces for gantry pcb to cubby mount (front)
 
@@ -49,6 +53,11 @@
 - M5 x 10mm & washers & T nuts x 3 pieces for rail carriage to aluminum arm attachment
 
 ## Dispenser
+- [STM32 blackpill F411CE](https://www.amazon.com/dp/B0DLNDY4V7) x 1 piece
+- [3v3 DCDC Buck Converter](https://www.amazon.com/dp/B0B779CGJQ) x 1 piece
+- [ULN2803 Darlington Transistor Array IC](https://www.amazon.com/dp/B0CBK5CHHW) x 1 piece
+- [MCP2515 SPI CAN Module](https://www.amazon.com/dp/B07J9KZ4L4) x 1 piece
+- 10k ohm resistors x 12 pieces
 
 ### Cubbies
 - M3 x 6mm screws & hex nuts x 16 pieces for inter-cubby attachments
@@ -56,6 +65,7 @@
 - [8inch drawer slides](https://www.amazon.com/dp/B0D62TB3V7) x 6 pieces
 - M5 x 12mm screws & hex nuts x 12 pieces for drawer slide to cubby attachment
 - M5 x 8mm screws & hex nuts x 10 pieces for cubby legs attachments
+- M5 x 10mm screws & washers x 8 pieces for cubbies to vslot aluminum attachment brackets
 
 ### Sleeves
 - M3 x 10mm screws & hex nuts & washers x 12 pieces for back plate to sleeve mounts
