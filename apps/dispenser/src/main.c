@@ -23,7 +23,7 @@ int main(void) {
       while (!gpio_pin_get_dt(&btn)) {
         k_msleep(DELAY_MS);
       }
-      dispense((enum position)i);
+      dispense((enum cubby_id)i);
     }
   }
 

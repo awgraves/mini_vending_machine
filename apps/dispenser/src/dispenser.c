@@ -3,7 +3,6 @@
 #include <zephyr/drivers/led.h>
 #include <zephyr/kernel.h>
 
-#define DELAY_MS 1
 #define WAIT_MAX_MS 5000
 
 struct cubby {
@@ -16,9 +15,9 @@ struct cubby {
    .beam = GPIO_DT_SPEC_GET(DT_ALIAS(beam_alias), gpios)}
 
 static const struct cubby cubbies[NUM_CUBBIES] = {
-    [POS_A] = CUBBY(motora, beama), [POS_B] = CUBBY(motorb, beamb),
-    [POS_C] = CUBBY(motorc, beamc), [POS_D] = CUBBY(motord, beamd),
-    [POS_E] = CUBBY(motore, beame), [POS_F] = CUBBY(motorf, beamf)};
+    [CUBBY_A] = CUBBY(motora, beama), [CUBBY_B] = CUBBY(motorb, beamb),
+    [CUBBY_C] = CUBBY(motorc, beamc), [CUBBY_D] = CUBBY(motord, beamd),
+    [CUBBY_E] = CUBBY(motore, beame), [CUBBY_F] = CUBBY(motorf, beamf)};
 
 static const struct led_dt_spec led = LED_DT_SPEC_GET(DT_ALIAS(led));
 
@@ -28,53 +27,22 @@ enum phase {
   STOP,
 };
 
-static const bool next_phase_beam_cond[2] = {
-    [MOVE_UNTIL_BAR_BREAKS_BEAM] = true,
-    [MOVE_UNTIL_BAR_CLEARS_BEAM] = false,
+static const int next_phase_beam_cond[2] = {
+    [MOVE_UNTIL_BAR_BREAKS_BEAM] = 1,
+    [MOVE_UNTIL_BAR_CLEARS_BEAM] = 0,
 };
 
-struct dispenser {
-  enum phase curr_phase;
-  atomic_t busy;
-};
-
-static struct dispenser d;
+static atomic_t busy;
 
 /*
   Helpers
 */
 
-void poll_beam(const struct gpio_dt_spec *beam, int *reading) {
-  *reading = gpio_pin_get_dt(beam);
-  *reading ? led_on_dt(&led) : led_off_dt(&led);
-}
+int poll_beam(const struct gpio_dt_spec *beam) {
+  int res = gpio_pin_get_dt(beam);
+  res ? led_on_dt(&led) : led_off_dt(&led);
 
-// returns true if motor should continue for next phase
-// false if end of cycle
-bool move_until_next_phase(const struct gpio_dt_spec *beam) {
-  if (d.curr_phase >= STOP) {
-    return false;
-  }
-
-  bool cond_to_proceed = next_phase_beam_cond[d.curr_phase];
-
-  int reading;
-  int wait_count = WAIT_MAX_MS;
-  while (1) {
-    poll_beam(beam, &reading);
-    if (reading == cond_to_proceed) {
-      break;
-    }
-
-    wait_count--;
-    if (wait_count <= 0) {
-      return false;
-    }
-    k_msleep(DELAY_MS);
-  }
-
-  d.curr_phase++;
-  return true;
+  return res;
 }
 
 /*
@@ -82,8 +50,7 @@ bool move_until_next_phase(const struct gpio_dt_spec *beam) {
 */
 
 int dispenser_init(void) {
-  atomic_clear(&d.busy);
-  d.curr_phase = STOP;
+  atomic_clear(&busy);
 
   if (!led_is_ready_dt(&led)) {
     return -ENODEV;
@@ -106,27 +73,47 @@ int dispenser_init(void) {
   return 0;
 }
 
-enum dispenser_result dispense(enum position pos) {
-  if (atomic_get(&d.busy)) {
+enum dispenser_result dispense(enum cubby_id id) {
+  if (!atomic_cas(&busy, 0, 1)) {
     return DISPENSER_ERR_BUSY;
   }
 
-  atomic_set(&d.busy, 1);
+  const struct cubby *c = &cubbies[id];
 
-  int beam_broken;
-
-  const struct cubby *c = &cubbies[pos];
-
-  poll_beam(&c->beam, &beam_broken);
-  d.curr_phase =
+  int beam_broken = poll_beam(&c->beam);
+  enum phase curr_phase =
       beam_broken ? MOVE_UNTIL_BAR_CLEARS_BEAM : MOVE_UNTIL_BAR_BREAKS_BEAM;
 
   gpio_pin_set_dt(&c->motor, 1);
-  while (move_until_next_phase(&c->beam))
-    ;
-  gpio_pin_set_dt(&c->motor, 0);
-  poll_beam(&c->beam, &beam_broken);
 
-  atomic_clear(&d.busy);
-  return DISPENSER_OK;
+  int wait_budget = WAIT_MAX_MS;
+  enum dispenser_result res = DISPENSER_OK;
+
+  while (curr_phase < STOP) {
+    bool cond_to_proceed = next_phase_beam_cond[curr_phase];
+
+    while (wait_budget > 0) {
+      beam_broken = poll_beam(&c->beam);
+      if (beam_broken == cond_to_proceed) {
+        break;
+      }
+
+      wait_budget--;
+      k_msleep(1);
+    }
+
+    if (wait_budget <= 0) {
+      res = DISPENSER_ERR_TIMEOUT;
+      curr_phase = STOP;
+      break;
+    }
+
+    curr_phase++;
+  };
+
+  gpio_pin_set_dt(&c->motor, 0);
+
+  atomic_clear(&busy);
+
+  return res;
 }
