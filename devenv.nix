@@ -10,7 +10,7 @@ let
   zephyr-sdk = zephyr.sdk.override {
     targets = [
       "arm-zephyr-eabi"
-      "xtensa-espressif_esp32_zephyr-elf"
+      "xtensa-espressif_esp32s3_zephyr-elf"
     ];
 
   };

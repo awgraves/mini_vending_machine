@@ -73,3 +73,7 @@
 - M3 x 12mm screws & hex nuts x 12 pieces for IR beam emitter/sensor mounts
 - [5v brushed DC motors](https://www.amazon.com/dp/B09DG3GCGK) x 6 pieces
 - [5v IR breakbeam sensors](https://www.amazon.com/dp/B0GVJX2M1L) x 6 pairs
+
+## Controller Node
+- [ESP32-S3 DevKit C 16N8R](https://www.amazon.com/dp/B0CRGQN58D)
+- [Hosyond 4" TFT SPI LCD 480x320 w/ Capacitive Touch](https://www.amazon.com/dp/B0CRGQN58D)

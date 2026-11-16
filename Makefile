@@ -8,7 +8,7 @@ APPS  := gantry dispenser controller
 # Per-app boards
 BOARD_gantry := blackpill_f411ce
 BOARD_dispenser := blackpill_f411ce
-BOARD_controller := doit_esp32_devkit_v1/esp32/procpu
+BOARD_controller := esp32s3_devkitc/esp32s3/procpu -S espressif-flash-16M -S espressif-psram-8M
 
 PORT := /dev/ttyACM0
 BAUD := 115200
