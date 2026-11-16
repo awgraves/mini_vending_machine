@@ -10,7 +10,8 @@ manifest:
       import:
         name-allowlist:
           - cmsis
-          - hal_stm32
           - cmsis_6
+          - hal_stm32
+          - hal_espressif
   self:
     path: .

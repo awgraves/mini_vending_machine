@@ -3,8 +3,12 @@ PY   := $(VENV)/bin/python
 WEST := $(VENV)/bin/west
 export ZEPHYR_TOOLCHAIN_VARIANT := zephyr
 
-BOARD := blackpill_f411ce
-APPS  := gantry dispenser
+APPS  := gantry dispenser controller
+
+# Per-app boards
+BOARD_gantry := blackpill_f411ce
+BOARD_dispenser := blackpill_f411ce
+BOARD_controller := doit_esp32_devkit_v1/esp32/procpu
 
 PORT := /dev/ttyACM0
 BAUD := 115200
@@ -28,14 +32,15 @@ setup:
 	$(WEST) update
 	$(WEST) zephyr-export
 	$(WEST) packages pip --install
+	$(WEST) blobs fetch hal_espressif
 	# NOTE: the zephyr-sdk will be installed by the devenv rather than by west
 
 # Static pattern rules: <targets>: <target-pattern>: <prereqs>
 $(BUILD_TARGETS): build-%:
-	$(WEST) build -p auto -b $(BOARD) apps/$* -d build/$* $(if $(EXTRA),-- $(EXTRA))
+	$(WEST) build -p auto -b $(BOARD_$*) apps/$* -d build/$* $(if $(EXTRA),-- $(EXTRA))
 
 $(REBUILD_TARGETS): rebuild-%:
-	$(WEST) build -p always -b $(BOARD) apps/$* -d build/$*
+	$(WEST) build -p always -b $(BOARD_$*) apps/$* -d build/$*
 
 $(FLASH_TARGETS): flash-%:
 	$(WEST) flash -d build/$*

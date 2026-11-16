@@ -1,13 +1,23 @@
-{ pkgs, lib, config, inputs, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  inputs,
+  ...
+}:
 let
   zephyr = inputs.zephyr-nix.packages.${pkgs.system};
   zephyr-sdk = zephyr.sdk.override {
-    targets = ["arm-zephyr-eabi"];
+    targets = [
+      "arm-zephyr-eabi"
+      "xtensa-espressif_esp32_zephyr-elf"
+    ];
+
   };
 in
 {
   # https://devenv.sh/basics/
-  
+
   env.GREET = "Mini Vending Machine DevEnv";
   env.ZEPHYR_TOOLCHAIN_VARIANT = "zephyr";
   env.ZEPHYR_SDK_INSTALL_DIR = "${zephyr-sdk}";
@@ -18,6 +28,7 @@ in
     pkgs.dtc
     pkgs.dfu-util
     pkgs.picocom
+    pkgs.esptool
 
     zephyr.pythonEnv
     zephyr.hosttools-nix
@@ -33,7 +44,6 @@ in
       };
     };
   };
-
 
   # https://devenv.sh/basics/
   enterShell = ''
