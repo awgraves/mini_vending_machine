@@ -32,6 +32,12 @@
 		width = <480>;
 	};
   };
+
+  touch_input: touch_input {
+	compatible = "zephyr,lvgl-pointer-input";
+	input = <&ft6336>;
+	invert-x;
+  };
 };
 
 /*
@@ -73,4 +79,35 @@
     pinctrl-0 = <&spim2_default>;
     pinctrl-names = "default";
 	status = "okay";
+};
+
+&pinctrl {
+	i2c0_custom: i2c0_custom {
+		group1 {
+			pinmux = <I2C0_SDA_GPIO5>, <I2C0_SCL_GPIO7>;
+			bias-pull-up;
+			drive-open-drain;
+			output-high;	
+		};
+	};
+};
+
+&i2c0 {
+	status = "okay";
+	pinctrl-0 = < &i2c0_custom >;
+	pinctrl-names = "default";
+
+	ft6336: ft6336@38 {
+		compatible = "focaltech,ft5336"; // handles ft6336 as well
+		reg = <0x38>;
+		// NOTE: the interrupt for ft6336 is only when finger is pressed
+		// so it misses the release signals
+		// By not specifying an int gpio, the driver will use polling instead
+		// int-gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&gpio0 6 GPIO_ACTIVE_LOW>;
+
+		screen-height = <320>;
+		screen-width = <480>;
+		// swapped-x-y;
+	};
 };
