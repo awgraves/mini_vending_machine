@@ -13,5 +13,6 @@ manifest:
           - cmsis_6
           - hal_stm32
           - hal_espressif
+          - lvgl
   self:
     path: .

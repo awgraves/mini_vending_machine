@@ -1,16 +1,35 @@
-#include <zephyr/dt-bindings/led/led.h>
 
 / {
-  aliases {
-	led0 = &led0;
-	ledstrip = &led_strip;
-  };	
 
-  leds {
-	compatible = "gpio-leds";
-	led0: d13 {
-		status = "okay";
-		gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;	
+  chosen {
+    zephyr,display = &lcd;	
+  };
+
+  mipi_dbi {
+    compatible = "zephyr,mipi-dbi-spi";
+	spi-dev = <&spi2>;
+	dc-gpios = <&gpio0 9 GPIO_ACTIVE_HIGH>;
+	reset-gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
+	write-only;
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+ 	
+	lcd: st7796s@0 {
+		reg = <0>;
+		compatible = "sitronix,st7796s";	
+		mipi-max-frequency = <40000000>; // 40 MHZ
+		
+		/* PGC and NGC values copied from https://github.com/Bodmer/TFT_eSPI/blob/16e37595040eac69cd628e4bffb56fc30cad6299/TFT_Drivers/ST7796_Init.h#L61 */
+		pgc = [F0 09 0b 06 04 15 2F 54 42 3C 17 14 18 1B];
+		ngc = [E0 09 0B 06 04 03 2B 43 42 3B 16 14 17 1B];
+
+		// madctl pg. 83 of https://www.displayfuture.com/Display/datasheet/controller/ST7796s.pdf
+		// Setting for landscape mode with mcu to mem col/row pixel direction.
+		// (MY, MX, and MV bits set == 0xEO)
+		madctl = <0xE0>;
+		height = <320>;
+		width = <480>;
 	};
   };
 };
@@ -21,29 +40,39 @@
  See pg. 31 of https://documentation.espressif.com/esp32-s3_datasheet_en.pdf
 */
 
-&i2s0_default {
-	group1 {
-		pinmux = <I2S0_O_SD_GPIO48>;
-	};
-};
+/*
+ pg. 27 of esp32-s3 datasheet shows periph pin assignments.
 
-i2s_led: &i2s0 {
+ SPI 0/1 are mainly internal buses. SPI 2/3 are for general purpose.
+  See: https://documentation.espressif.com/esp32-s3_technical_reference_manual_en.pdf#spi
+
+ Default SPI2 pins are:
+  - CS: 10
+  - MOSI: 11
+  - CLK: 12
+
+ And for other LCD pins:
+  - LCD_RS: 9
+  - LCD_RST: 14
+
+ For I2C (for capacitive touch), many options.
+ Can use pins on same side of board as SPI 2:
+  - CTP_INT: 4
+  - CTP_SDA: 5
+  - CTP_RST: 6
+  - CTP_SCL: 7
+ I2C addr is 0x38 per https://manuals.plus/asin/B0CRGQN58D.pdf pg 11
+
+ TWAI (CAN) has many options.
+ To place on opposite side of board from LCD:
+ - TX: 1
+ - RX: 2
+*/
+
+&spi2 {
+    pinctrl-0 = <&spim2_default>;
+    pinctrl-names = "default";
 	status = "okay";
-
-	dmas = <&dma 3>;
-	dma-names = "tx";
-
-	led_strip: ws2812@0 {
-		compatible = "worldsemi,ws2812-i2s";
-
-		reg = <0>;
-		chain-length = <1>;
-		color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
-		reset-delay = <500>;
-	};
 };
 
-&dma {
-	status = "okay";
-};
 
