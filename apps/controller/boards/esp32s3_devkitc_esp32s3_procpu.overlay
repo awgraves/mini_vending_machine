@@ -3,6 +3,7 @@
 
   chosen {
     zephyr,display = &lcd;	
+	zephyr,canbus = &twai;
   };
 
   mipi_dbi {
@@ -90,6 +91,12 @@
 			output-high;	
 		};
 	};
+
+	twai_custom: twai_custom {
+		group1 {
+			pinmux = < TWAI_TX_GPIO1 >, < TWAI_RX_GPIO2 >;
+		};	
+	};
 };
 
 &i2c0 {
@@ -108,6 +115,11 @@
 
 		screen-height = <320>;
 		screen-width = <480>;
-		// swapped-x-y;
 	};
+};
+
+&twai {
+	status = "okay";
+	pinctrl-0 = < &twai_custom >;	
+	pinctrl-names = "default";
 };
