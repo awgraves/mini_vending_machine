@@ -1,0 +1,16 @@
+description: |
+  A group of GPIO pins that control a pre-fabbed LED strip controller
+  via transistors replacing manual button presses.
+
+compatible: "gpio-ledstrip-ctrls"
+
+properties:
+  enable-gpios:
+    type: phandle-array
+    required: true
+    description: Controls power to the unit (active high).
+
+  mode-gpios:
+    type: phandle-array
+    required: true
+    description: Replicates pressing the mode button to cycle through color patterns.

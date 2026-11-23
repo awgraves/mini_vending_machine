@@ -39,6 +39,13 @@
 	input = <&ft6336>;
 	invert-x;
   };
+
+  ledstripctrl: ledstripctrl {
+    compatible = "gpio-ledstrip-ctrls";
+
+    enable-gpios = <&gpio1 15 GPIO_ACTIVE_HIGH>; // 47
+    mode-gpios = <&gpio0 21 GPIO_ACTIVE_HIGH>;
+  };
 };
 
 /*

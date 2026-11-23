@@ -2,6 +2,7 @@
 #include <lvgl.h>
 #include <zephyr/drivers/can.h>
 #include <zephyr/drivers/display.h>
+#include <zephyr/drivers/gpio.h>
 #include <zephyr/input/input.h>
 #include <zephyr/kernel.h>
 
@@ -9,6 +10,11 @@
 
 #define RX_THREAD_STACK_SIZE 1024
 #define RX_THREAD_PRIORITY 2
+
+static struct gpio_dt_spec ledstrip_enable_pin =
+    GPIO_DT_SPEC_GET(DT_NODELABEL(ledstripctrl), enable_gpios);
+static struct gpio_dt_spec ledstrip_mode_pin =
+    GPIO_DT_SPEC_GET(DT_NODELABEL(ledstripctrl), mode_gpios);
 
 const struct device *const can_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_canbus));
 
@@ -104,6 +110,39 @@ void btn_handler(lv_event_t *e) {
   can_send(can_dev, &frame, K_NO_WAIT, tx_irq_callback, "Button click");
 }
 
+#define LED_STRIP_SETTING_NUM 9
+#define LED_STRIP_WAIT_MS 100
+
+int ledstrip_init(void) {
+  struct gpio_dt_spec *en = &ledstrip_enable_pin;
+  struct gpio_dt_spec *mode = &ledstrip_mode_pin;
+
+  if (!gpio_is_ready_dt(en)) {
+    return -ENODEV;
+  }
+  if (!gpio_is_ready_dt(mode)) {
+    return -ENODEV;
+  }
+  gpio_pin_configure_dt(en, GPIO_OUTPUT);
+  gpio_pin_configure_dt(mode, GPIO_OUTPUT);
+
+  gpio_pin_set_dt(en, 0);
+  k_msleep(75);
+  gpio_pin_set_dt(en, 1);
+  k_msleep(75);
+
+  gpio_pin_set_dt(mode, 0);
+
+  for (int i = 0; i < LED_STRIP_SETTING_NUM; i++) {
+    gpio_pin_set_dt(mode, 1);
+    k_msleep(LED_STRIP_WAIT_MS);
+    gpio_pin_set_dt(mode, 0);
+    k_msleep(LED_STRIP_WAIT_MS);
+  }
+
+  return 0;
+}
+
 int main(void) {
   if (!device_is_ready(display_dev)) {
     printk("Display not ready\n");
@@ -115,7 +154,15 @@ int main(void) {
     return 0;
   }
 
-  int ret = can_set_mode(can_dev, CAN_MODE_NORMAL);
+  // TODO: make this a single shot, non-blocking task
+  // so screen can still init
+  int ret = ledstrip_init();
+  if (ret != 0) {
+    printk("Led strip ctrl failed with code %d\n", ret);
+    // ok to proceed anyway
+  }
+
+  ret = can_set_mode(can_dev, CAN_MODE_NORMAL);
   if (ret != 0) {
     printk("Error setting CAN mode [%d]\n", ret);
     return 0;
