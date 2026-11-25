@@ -429,7 +429,7 @@
         "uuid": "9cb593e6-32bf-4361-a9bb-58d73e03be5a"
       }
     ],
-    "used_designators": "J1-40,SW1-3,R1-21,D1-8,C1-14,M1-8,Y1-2,#PWR1-60,U1-17",
+    "used_designators": "J1-43,SW1-4,R1-25,D1-8,C1-17,M1-8,Y1-2,#PWR1-67,Q1-3,U1-20",
     "variants": []
   },
   "sheets": [
@@ -440,6 +440,10 @@
     [
       "a451d1ee-4113-4968-91fc-9104ae4ffa3c",
       "Power Module"
+    ],
+    [
+      "7549ad06-d136-416a-a39a-d5014e982acd",
+      "Controller Node"
     ],
     [
       "45e4f3aa-c803-47fd-aafb-7de87d67a238",

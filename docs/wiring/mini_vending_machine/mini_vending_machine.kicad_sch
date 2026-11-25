@@ -824,28 +824,28 @@
 		(uuid "73401b47-5531-42e1-8b73-0592e422b3ee")
 	)
 	(junction
-		(at 200.66 105.41)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "0b633611-3cf2-483c-a8ce-abbd887b51aa")
-	)
-	(junction
 		(at 140.97 97.79)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "672f6015-6409-41ee-abf4-8f18b1fdce25")
 	)
 	(junction
+		(at 199.39 105.41)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "8e4c2b60-6adb-4e2f-940c-3b11f8855be3")
+	)
+	(junction
 		(at 171.45 105.41)
 		(diameter 0)
 		(color 0 0 0 0)
-		(uuid "a39c8c35-b41a-4201-90bc-c32fe15c00fd")
+		(uuid "c59a171e-8c74-4298-8101-5fbe79674d49")
 	)
 	(junction
-		(at 198.12 97.79)
+		(at 196.85 97.79)
 		(diameter 0)
 		(color 0 0 0 0)
-		(uuid "b9db76ef-1357-4f06-92c3-f4cd56f11c03")
+		(uuid "d0c45b20-049d-4ac1-8ad7-fb859c9579e5")
 	)
 	(junction
 		(at 143.51 105.41)
@@ -861,13 +861,53 @@
 	)
 	(wire
 		(pts
-			(xy 171.45 93.98) (xy 171.45 105.41)
+			(xy 171.45 105.41) (xy 171.45 121.92)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "2c8f3623-6589-4418-9afd-668803d7ff49")
+		(uuid "2cb07475-cff5-490b-87fc-6c0870f177d3")
+	)
+	(wire
+		(pts
+			(xy 196.85 93.98) (xy 196.85 97.79)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2f59eacf-1115-466b-901e-5f75920b3f4f")
+	)
+	(wire
+		(pts
+			(xy 196.85 97.79) (xy 196.85 121.92)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2ff4b678-4c75-4bc9-a5be-dc7cb754d987")
+	)
+	(wire
+		(pts
+			(xy 199.39 105.41) (xy 199.39 121.92)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "312261cc-1f98-45e4-9456-1e3ccc6ec3d1")
+	)
+	(wire
+		(pts
+			(xy 199.39 93.98) (xy 199.39 105.41)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3b11dcf1-050f-469a-afc1-faf59177b4fa")
 	)
 	(wire
 		(pts
@@ -881,13 +921,23 @@
 	)
 	(wire
 		(pts
-			(xy 198.12 93.98) (xy 198.12 97.79)
+			(xy 168.91 97.79) (xy 196.85 97.79)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "4be3c631-ceef-48cf-b4f2-7209a4c266e2")
+		(uuid "426042bb-d0b6-415f-991a-1c1f2bd96348")
+	)
+	(wire
+		(pts
+			(xy 168.91 97.79) (xy 168.91 121.92)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "455fe085-ee5f-428e-b379-2d6f05129c3a")
 	)
 	(wire
 		(pts
@@ -921,23 +971,13 @@
 	)
 	(wire
 		(pts
-			(xy 168.91 121.92) (xy 168.91 97.79)
+			(xy 171.45 93.98) (xy 171.45 105.41)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "85dbe2d3-04ad-42e3-8e4e-0fc67d5e2e7d")
-	)
-	(wire
-		(pts
-			(xy 171.45 105.41) (xy 171.45 121.92)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "8767dce8-aeac-448a-8eba-44b37860cb10")
+		(uuid "80f5fef8-c26e-4098-9d69-e4866273b707")
 	)
 	(wire
 		(pts
@@ -951,43 +991,13 @@
 	)
 	(wire
 		(pts
-			(xy 200.66 93.98) (xy 200.66 105.41)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "8a686657-e56e-4318-86aa-5605dfbd2e40")
-	)
-	(wire
-		(pts
-			(xy 200.66 105.41) (xy 214.63 105.41)
+			(xy 171.45 105.41) (xy 199.39 105.41)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
 		(uuid "8ed89875-14cd-4322-a686-a75f722de23f")
-	)
-	(wire
-		(pts
-			(xy 168.91 97.79) (xy 198.12 97.79)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "91e3c4cf-97cb-418e-a76a-ede8c14f5f9d")
-	)
-	(wire
-		(pts
-			(xy 171.45 105.41) (xy 200.66 105.41)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "98ee54c8-b920-4e91-896b-0865e80c0a17")
 	)
 	(wire
 		(pts
@@ -998,16 +1008,6 @@
 			(type default)
 		)
 		(uuid "997899b8-ae04-425c-8545-fc606410d0ab")
-	)
-	(wire
-		(pts
-			(xy 198.12 97.79) (xy 198.12 121.92)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "ab5416b0-abc8-4b82-9e6f-cd9c5003b9be")
 	)
 	(wire
 		(pts
@@ -1031,13 +1031,13 @@
 	)
 	(wire
 		(pts
-			(xy 200.66 105.41) (xy 200.66 121.92)
+			(xy 196.85 97.79) (xy 214.63 97.79)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "b3477780-49bd-4f79-94e8-8ee2e5bafe44")
+		(uuid "bc0c37b0-909c-42c3-b3d5-b1e05bba4367")
 	)
 	(wire
 		(pts
@@ -1051,13 +1051,13 @@
 	)
 	(wire
 		(pts
-			(xy 198.12 97.79) (xy 214.63 97.79)
+			(xy 140.97 97.79) (xy 140.97 121.92)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "d2d4f6c2-7e25-4519-b84c-2c3fa8de7098")
+		(uuid "cb7129dd-c35a-4d04-9d12-d8d62e7a1ab6")
 	)
 	(wire
 		(pts
@@ -1068,6 +1068,26 @@
 			(type default)
 		)
 		(uuid "dbee9acf-27ce-459c-81aa-e069b088a443")
+	)
+	(wire
+		(pts
+			(xy 143.51 105.41) (xy 143.51 121.92)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e814c4fd-613c-42cd-9aee-a6496cd4ede7")
+	)
+	(wire
+		(pts
+			(xy 199.39 105.41) (xy 214.63 105.41)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f5ce728e-39ee-48d2-a54f-0286df149a54")
 	)
 	(label "CANH"
 		(at 153.67 97.79 0)
@@ -1419,7 +1439,7 @@
 	)
 	(symbol
 		(lib_id "Connector:Conn_01x02_Pin")
-		(at 200.66 88.9 270)
+		(at 199.39 88.9 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -1430,7 +1450,7 @@
 		(fields_autoplaced yes)
 		(uuid "6633895b-c84a-4f8e-9860-d77c7be8eab1")
 		(property "Reference" "J15"
-			(at 201.93 88.2649 90)
+			(at 200.66 88.2649 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1441,7 +1461,7 @@
 			)
 		)
 		(property "Value" "Node Conn"
-			(at 201.93 90.8049 90)
+			(at 200.66 90.8049 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1452,7 +1472,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 200.66 88.9 0)
+			(at 199.39 88.9 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1463,7 +1483,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 200.66 88.9 0)
+			(at 199.39 88.9 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1474,7 +1494,7 @@
 			)
 		)
 		(property "Description" "Generic connector, single row, 01x02, script generated"
-			(at 200.66 88.9 0)
+			(at 199.39 88.9 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1742,13 +1762,12 @@
 		)
 	)
 	(sheet
-		(at 146.05 121.92)
-		(size 30.48 17.78)
+		(at 158.75 121.92)
+		(size 22.86 17.78)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(stroke
 			(width 0.1524)
 			(type solid)
@@ -1758,18 +1777,18 @@
 		)
 		(uuid "45e4f3aa-c803-47fd-aafb-7de87d67a238")
 		(property "Sheetname" "Gantry Node"
-			(at 146.05 121.2084 0)
+			(at 170.18 134.112 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left bottom)
 			)
 		)
 		(property "Sheetfile" "gantry_node.kicad_sch"
-			(at 146.05 140.2846 0)
+			(at 189.8146 139.7 90)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1802,19 +1821,18 @@
 		(instances
 			(project "mini_vending_machine"
 				(path "/9cb593e6-32bf-4361-a9bb-58d73e03be5a"
-					(page "3")
+					(page "4")
 				)
 			)
 		)
 	)
 	(sheet
-		(at 177.8 121.92)
-		(size 30.48 17.78)
+		(at 130.81 121.92)
+		(size 22.86 17.78)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(stroke
 			(width 0.1524)
 			(type solid)
@@ -1822,9 +1840,9 @@
 		(fill
 			(color 0 0 0 0)
 		)
-		(uuid "8f2ddfc3-342c-4475-8912-198fa59dfba9")
-		(property "Sheetname" "Dispenser Node"
-			(at 177.8 121.2084 0)
+		(uuid "7549ad06-d136-416a-a39a-d5014e982acd")
+		(property "Sheetname" "Controller Node"
+			(at 134.62 134.874 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1834,8 +1852,9 @@
 				(justify left bottom)
 			)
 		)
-		(property "Sheetfile" "dispenser_node.kicad_sch"
-			(at 177.8 140.2846 0)
+		(property "Sheetfile" "controller_node.kicad_sch"
+			(at 130.81 140.2846 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1846,7 +1865,73 @@
 			)
 		)
 		(pin "CANH" bidirectional
-			(at 198.12 121.92 90)
+			(at 140.97 121.92 90)
+			(uuid "01464df6-b2a2-4f18-a4f9-c770391f59fb")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "CANL" bidirectional
+			(at 143.51 121.92 90)
+			(uuid "de5187e1-d1c3-437a-8bf6-ae7c34917663")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(instances
+			(project "mini_vending_machine"
+				(path "/9cb593e6-32bf-4361-a9bb-58d73e03be5a"
+					(page "3")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 186.69 121.92)
+		(size 22.86 17.78)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "8f2ddfc3-342c-4475-8912-198fa59dfba9")
+		(property "Sheetname" "Dispenser Node"
+			(at 190.754 134.874 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "dispenser_node.kicad_sch"
+			(at 186.69 140.2846 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(pin "CANH" bidirectional
+			(at 196.85 121.92 90)
 			(uuid "186f2fdc-321b-4e3f-b732-23b55ed91c5e")
 			(effects
 				(font
@@ -1856,7 +1941,7 @@
 			)
 		)
 		(pin "CANL" bidirectional
-			(at 200.66 121.92 90)
+			(at 199.39 121.92 90)
 			(uuid "77076509-aff8-424c-8790-d3780fe6040b")
 			(effects
 				(font
@@ -1868,7 +1953,7 @@
 		(instances
 			(project "mini_vending_machine"
 				(path "/9cb593e6-32bf-4361-a9bb-58d73e03be5a"
-					(page "7")
+					(page "8")
 				)
 			)
 		)

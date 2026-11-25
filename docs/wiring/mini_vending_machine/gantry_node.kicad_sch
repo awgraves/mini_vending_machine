@@ -3751,7 +3751,7 @@
 		(instances
 			(project "mini_vending_machine"
 				(path "/9cb593e6-32bf-4361-a9bb-58d73e03be5a/45e4f3aa-c803-47fd-aafb-7de87d67a238"
-					(page "5")
+					(page "6")
 				)
 			)
 		)
@@ -3867,7 +3867,7 @@
 		(instances
 			(project "mini_vending_machine"
 				(path "/9cb593e6-32bf-4361-a9bb-58d73e03be5a/45e4f3aa-c803-47fd-aafb-7de87d67a238"
-					(page "4")
+					(page "5")
 				)
 			)
 		)
@@ -4013,7 +4013,7 @@
 		(instances
 			(project "mini_vending_machine"
 				(path "/9cb593e6-32bf-4361-a9bb-58d73e03be5a/45e4f3aa-c803-47fd-aafb-7de87d67a238"
-					(page "6")
+					(page "7")
 				)
 			)
 		)
