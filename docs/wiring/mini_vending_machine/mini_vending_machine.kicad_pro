@@ -429,17 +429,13 @@
         "uuid": "9cb593e6-32bf-4361-a9bb-58d73e03be5a"
       }
     ],
-    "used_designators": "J1-43,SW1-4,R1-25,D1-8,C1-17,M1-8,Y1-2,#PWR1-67,Q1-3,U1-20",
+    "used_designators": "J1-48,SW1-5,R1-25,D1-8,C1-17,M1-8,Y1-2,#PWR1-69,Q1-3,U1-20",
     "variants": []
   },
   "sheets": [
     [
       "9cb593e6-32bf-4361-a9bb-58d73e03be5a",
       "mini_vending_machine"
-    ],
-    [
-      "a451d1ee-4113-4968-91fc-9104ae4ffa3c",
-      "Power Module"
     ],
     [
       "7549ad06-d136-416a-a39a-d5014e982acd",
