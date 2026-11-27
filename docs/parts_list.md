@@ -78,3 +78,4 @@
 ## Controller Node
 - [ESP32-S3 DevKit C 16N8R](https://www.amazon.com/dp/B0CRGQN58D)
 - [Hosyond 4" TFT SPI LCD 480x320 w/ Capacitive Touch](https://www.amazon.com/dp/B0CRGQN58D)
+- M3 x 6mm screws x 4 pieces for lcd screen to front top panel attachment
